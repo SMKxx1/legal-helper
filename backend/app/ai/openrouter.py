@@ -1,7 +1,7 @@
 """OpenRouter adapter — the only code that talks to OpenRouter's OpenAI-compatible API.
 
 Implements ``gateway.ProviderAdapter.complete`` against ``POST {base_url}/chat/completions``
-(httpx, no SDK dependency) for vendor-namespaced model ids (``anthropic/claude-opus-4-8``).
+(httpx, no SDK dependency) for vendor-namespaced model ids (``z-ai/glm-5.3``).
 This is NEW code (PLAN §3.8 — verified 2026-07-03: no prior implementation exists to port);
 the direct-Anthropic adapter (``adapters.py``) remains the configuration fallback.
 
@@ -109,13 +109,16 @@ def _supports_reasoning(model: str) -> bool:
         return "gpt-5" in m or m.startswith(
             "openai/o"
         )  # reasoning-capable OpenAI families
-    return False
+    # GLM 5.x lists `reasoning` in OpenRouter's supported_parameters; without this the agents'
+    # effort settings (classifier/coverage "low", reviewer "medium") are silently dropped and
+    # every tier runs at the provider default.
+    return m.startswith("z-ai/glm-5")
 
 
 #: Families with verified json_schema structured-output support through OpenRouter. Anything else
 #: still receives the schema (strict: false) and relies on the always-on client-side validation
 #: + repair round-trip.
-_STRICT_FAMILIES = ("anthropic/", "openai/", "google/")
+_STRICT_FAMILIES = ("anthropic/", "openai/", "google/", "z-ai/")
 
 
 def _supports_strict_schema(model: str) -> bool:

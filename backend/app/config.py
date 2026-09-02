@@ -67,16 +67,22 @@ class Settings(BaseSettings):
     addin_id: str = "7b3f9a42-1c6e-4d2a-9f51-0a1b2c3d4e5f"
 
     # ---- LLM models (OpenRouter model ids, per review tier) ---------------
-    model_classifier: str = "anthropic/claude-haiku-4-5"
-    model_quick: str = "anthropic/claude-sonnet-4-6"
-    model_deep: str = "anthropic/claude-opus-4-8"
+    # OpenRouter slugs, NOT Anthropic-style ids: minor versions are dotted here (`glm-5.3`,
+    # `claude-opus-4.8`), and a dashed id like `anthropic/claude-opus-4-8` does not resolve at all.
+    # Verify any change against https://openrouter.ai/api/v1/models before shipping it.
+    model_classifier: str = "z-ai/glm-5.3-flash"
+    model_quick: str = "z-ai/glm-5.3-flash"
+    model_deep: str = "z-ai/glm-5.3"
 
     # ---- OpenRouter (ZDR-pinned — every request carries provider {data_collection:'deny',
     # zdr:true, allow_fallbacks:false}; no route -> error, never a silent downgrade) -------------
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
-    # Deep-tier provider pin: opus-4-8's default ZDR route rejects json_schema; google-vertex serves
-    # it with ZDR and accepts json_schema.
-    openrouter_provider_only_deep: str = "google-vertex"
+    # Deep-tier provider pin, empty by default. It existed to force Anthropic Opus onto
+    # google-vertex (its default ZDR route rejects json_schema) — and with a non-Anthropic deep
+    # model that pin is actively harmful: `only: [google-vertex]` plus allow_fallbacks:false
+    # leaves a z-ai model with no route at all. Set it only to pin a provider that actually
+    # serves the configured model.
+    openrouter_provider_only_deep: str = ""
     # Set True once Phase 2 wires a live check of OpenRouter's GET /api/v1/endpoints/zdr list; until
     # then the openrouter_zdr_list capability reports disabled (there is nothing to validate yet).
     openrouter_zdr_list_ready: bool = False

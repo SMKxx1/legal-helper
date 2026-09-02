@@ -253,7 +253,7 @@ that matter in production:
 | `S3_*` (5 vars) | Railway: `${{documents.ENDPOINT}}` etc. All blank → bucket capability `disabled`, reviews still work. |
 | `MAX_MONTHLY_COST_USD` | Per-user spend cap; a review beyond it is refused with `402`. |
 | `SIGNUP_ENABLED` | `false` closes registration; existing accounts keep working. |
-| `MODEL_CLASSIFIER` / `MODEL_QUICK` / `MODEL_DEEP` | Defaults; each user may override from the ZDR list. |
+| `MODEL_CLASSIFIER` / `MODEL_QUICK` / `MODEL_DEEP` | `z-ai/glm-5.3-flash` ×2 and `z-ai/glm-5.3`. OpenRouter slugs (dotted minor versions); each user may override from the ZDR list. |
 
 ---
 

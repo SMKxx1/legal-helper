@@ -130,9 +130,9 @@ _MODE_WEIGHTS: list[tuple[str, float]] = [("quick", 0.65), ("deep", 0.35)]
 #: `ai.gateway.error_code_for`).
 _FAILURE_CODES = ["rate_limited", "insufficient_credits", "timeout"]
 
-_MODEL_CLASSIFIER = "anthropic/claude-haiku-4-5"
-_MODEL_QUICK = "anthropic/claude-sonnet-4-6"
-_MODEL_DEEP = "anthropic/claude-opus-4-8"
+_MODEL_CLASSIFIER = "z-ai/glm-5.3-flash"
+_MODEL_QUICK = "z-ai/glm-5.3-flash"
+_MODEL_DEEP = "z-ai/glm-5.3"
 
 _REQUIRED_CLAUSES = [
     "confidentiality",

@@ -61,12 +61,12 @@ def test_field_defaults() -> None:
     s = Settings(_env_file=None)
     assert s.app_secret_key == ""
     assert s.addin_id == "7b3f9a42-1c6e-4d2a-9f51-0a1b2c3d4e5f"
-    assert s.model_classifier == "anthropic/claude-haiku-4-5"
-    assert s.model_quick == "anthropic/claude-sonnet-4-6"
-    assert s.model_deep == "anthropic/claude-opus-4-8"
+    assert s.model_classifier == "z-ai/glm-5.3-flash"
+    assert s.model_quick == "z-ai/glm-5.3-flash"
+    assert s.model_deep == "z-ai/glm-5.3"
     assert s.openrouter_base_url == "https://openrouter.ai/api/v1"
-    assert s.openrouter_provider_only_deep == "google-vertex"
-    assert s.openrouter_provider_only_deep_list == ("google-vertex",)
+    assert s.openrouter_provider_only_deep == ""
+    assert s.openrouter_provider_only_deep_list == ()
     assert s.openrouter_zdr_list_ready is False
     assert s.provider_timeout_s == 150.0
     assert s.review_concurrency == 2
