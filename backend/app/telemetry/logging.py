@@ -111,7 +111,7 @@ class CorrelationIdMiddleware:
         inbound = Headers(scope=scope).get(self.header_name)
         cid = inbound or uuid4().hex
         token = correlation_id_var.set(cid)
-        log = get_logger("nda.request")
+        log = get_logger("legal_helper.request")
         method = scope.get("method", "-")
         path = scope.get("path", "-")
         start = time.perf_counter()

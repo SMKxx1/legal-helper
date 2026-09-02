@@ -1,19 +1,28 @@
-"""Capability registry (PLAN §3.2).
+"""Capability registry.
 
 Every integration is a *capability* with one of three states:
 
 * ``enabled``   — required config is present (and any health probe passed).
 * ``disabled``  — required config is missing. This is a normal, expected state: the feature is
   politely off. Missing config NEVER crashes boot and NEVER fails liveness.
-* ``unhealthy`` — configured but a runtime failure occurred (e.g. an exporter refused to start).
+* ``unhealthy`` — configured but a runtime failure occurred (e.g. the database is unreachable).
 
 The registry is evaluated once at boot from :class:`~app.config.Settings`, then mutated at runtime via
-:meth:`mark_unhealthy` / :meth:`mark_recovered`. It exposes :meth:`report` (detailed, for the future
-admin surface) and :meth:`healthy` (a shallow boolean for the public ``/healthz`` liveness probe).
+:meth:`mark_unhealthy` / :meth:`mark_recovered`. It exposes :meth:`report` (detailed — the public
+``GET /api/status`` in a later phase) and :meth:`healthy` (a shallow boolean for ``/healthz``).
 
-Fail-soft vs fail-closed (PLAN §6): a disabled/unhealthy *capability* degrades a feature but keeps the
-process serving. Only a capability explicitly marked ``critical`` can pull ``/healthz`` to 503 — the
-seam a future liveness-critical dependency (e.g. the primary datastore) plugs into.
+Fail-soft vs fail-closed: a disabled/unhealthy *capability* degrades a feature but keeps the process
+serving. Only a capability explicitly marked ``critical`` can pull ``/healthz`` to 503 — today that is
+only ``database``.
+
+Legal Helper has three capabilities:
+
+* ``database``           — critical. The primary Postgres/SQLite datastore.
+* ``bucket``              — the Railway bucket storing each review's original .docx (Phase 4).
+* ``openrouter_zdr_list`` — validation of OpenRouter's Zero-Data-Retention model list (Phase 2).
+
+``bucket`` and ``openrouter_zdr_list`` report ``disabled`` until the phase that wires their real
+check lands — that is by design, not a bug: there is nothing to check yet.
 """
 
 from __future__ import annotations
@@ -139,7 +148,7 @@ class CapabilityRegistry:
         """Shallow liveness for ``/healthz``: True unless a *critical* capability is unhealthy.
 
         Disabled and non-critical-unhealthy capabilities never affect liveness (capabilities fail
-        soft). No detail leaks — that lives in :meth:`report` behind admin auth (PLAN §6).
+        soft). No detail leaks here — that lives in :meth:`report`.
         """
         return not any(
             s.critical and s.state is CapabilityState.UNHEALTHY
@@ -147,7 +156,7 @@ class CapabilityRegistry:
         )
 
     def report(self) -> list[dict[str, object]]:
-        """Detailed per-capability states — for the future admin surface, NOT the public ``/healthz``."""
+        """Detailed per-capability states — for ``GET /api/status`` (Phase 3), NOT ``/healthz``."""
         return [self._status[name].as_dict() for name in self._caps]
 
     def state(self, name: str) -> CapabilityState:
@@ -160,112 +169,41 @@ class CapabilityRegistry:
         return list(self._caps)
 
 
-TELEMETRY_EXPORT = "telemetry_export"
-LLM_INFERENCE = "llm_inference"
-# P2 bot-core channels (PLAN §3.3). Each is fail-soft: missing config disables that channel, it never
-# fails liveness. GATES layered on top (dedup, signatures, allowlist, DMARC) fail CLOSED — but those
-# live in the bot's transactional code, not here; a capability only answers "is this channel wired?".
-SLACK = "slack"
-EMAIL_IN = "email_in"
-EMAIL_OUT = "email_out"
-TALLY = "tally"
-DOCUSIGN = "docusign"
-# P4 archive/watcher/expiration surfaces (PLAN §3.10). Both fail-soft: missing config disables the
-# surface (archive/watcher/expiration-upsert quietly turn off), it never fails liveness.
-GOOGLE_DRIVE = "google_drive"
-AIRTABLE = "airtable"
-
-
-async def llm_inference_probe(_settings: Settings) -> str | None:
-    """Boot-time probe STUB for the OpenRouter gateway — deliberately no network at boot.
-
-    The full check (PLAN §3.8: each configured model alias resolves under the ZDR routing policy —
-    provider {data_collection:'deny', zdr:true, allow_fallbacks:false} finds at least one route per
-    alias) requires a live OpenRouter call, so it must not run inside boot's probe pass; it lands
-    with the P1 eval gate as an on-demand/admin check wired through this same seam. Until then a
-    present key is reported healthy.
-    """
-    return None
+DATABASE = "database"
+BUCKET = "bucket"
+OPENROUTER_ZDR_LIST = "openrouter_zdr_list"
 
 
 def default_capabilities() -> list[Capability]:
-    """The capabilities registered at boot. Grows one row per integration in later phases."""
+    """The three capabilities registered at boot."""
     return [
+        # Critical: the primary datastore. No config is required to boot (SQLite works out of the
+        # box); Phase 1 adds a probe that fails this when APP_SECRET_KEY is missing in prod.
         Capability(
-            name=TELEMETRY_EXPORT,
-            required_keys=("applicationinsights_connection_string",),
-            summary="Export traces/logs/metrics to Azure Application Insights.",
-            critical=False,
+            name=DATABASE,
+            required_keys=(),
+            summary="Primary Postgres/SQLite datastore.",
+            critical=True,
         ),
-        # LLM inference via the ZDR-pinned OpenRouter adapter (app.ai.openrouter, PLAN §3.8).
-        # Non-critical: a missing key disables the feature (reviews degrade politely), it never
-        # fails liveness. The direct-Anthropic fallback is a config concern, not a capability.
+        # A Railway bucket storing each review's original .docx (Phase 4). Disabled until all four
+        # S3-compatible fields are configured.
         Capability(
-            name=LLM_INFERENCE,
-            required_keys=("openrouter_api_key",),
-            summary="LLM inference via the ZDR-pinned OpenRouter gateway.",
-            critical=False,
-            probe=llm_inference_probe,
-        ),
-        # Bot channels (PLAN §3.3). Slack needs both the bot token (Web API) and the signing secret
-        # (inbound v0 HMAC verification). Email intake needs the IMAP poller creds; email delivery
-        # needs the SMTP creds. All non-critical — a missing channel degrades the bot, never boot.
-        Capability(
-            name=SLACK,
-            required_keys=("slack_bot_token", "slack_signing_secret"),
-            summary="Slack intake + interactivity (Bolt): events, threaded replies, buttons/modals.",
-            critical=False,
-        ),
-        Capability(
-            name=EMAIL_IN,
-            required_keys=("imap_host", "imap_user", "imap_password"),
-            summary="Email intake via IMAP polling (worker) — normalized into the same envelope.",
-            critical=False,
-        ),
-        Capability(
-            name=EMAIL_OUT,
-            required_keys=("smtp_host", "smtp_user", "smtp_password"),
-            summary="Email delivery via SMTP: threaded replies + document attachments.",
-            critical=False,
-        ),
-        Capability(
-            name=TALLY,
-            required_keys=("tally_signing_secret",),
-            summary="Tally intake: verified webhook → NDA generation + reply (external form).",
-            critical=False,
-        ),
-        Capability(
-            name=DOCUSIGN,
+            name=BUCKET,
             required_keys=(
-                "docusign_account_id",
-                "docusign_integration_key",
-                "docusign_user_id",
-                "docusign_private_key",
+                "s3_endpoint",
+                "s3_bucket",
+                "s3_access_key_id",
+                "s3_secret_access_key",
             ),
-            summary="DocuSign e-signature: envelope create + send (JWT grant).",
+            summary="Railway bucket storing each review's original .docx.",
             critical=False,
         ),
-        # Archive / watcher (PLAN §3.10). Google Drive needs the offline-grant OAuth trio (to mint
-        # access tokens) PLUS the destination archive folder id. Non-critical: without it the archive
-        # intent + cache-folder watcher disable, they never fail liveness. drive_cache_folder_name is
-        # NOT required (it carries a working default).
+        # Validation of OpenRouter's Zero-Data-Retention model list (Phase 2 wires the real check
+        # against openrouter_zdr_list_ready; it defaults False, so this reports disabled today).
         Capability(
-            name=GOOGLE_DRIVE,
-            required_keys=(
-                "google_oauth_client_id",
-                "google_oauth_client_secret",
-                "google_oauth_refresh_token",
-                "drive_archive_folder_id",
-            ),
-            summary="Google Drive archive: signed-NDA cache upload + auto-name watcher into the destination folder.",
-            critical=False,
-        ),
-        # Expiration tracker (PLAN §3.10). Airtable upsert needs the PAT + base id + table; absent =>
-        # extraction still runs/logs but the upsert is a no-op. Non-critical.
-        Capability(
-            name=AIRTABLE,
-            required_keys=("airtable_pat", "airtable_base_id", "airtable_table"),
-            summary="Airtable expiration tracker: upsert extracted NDA expiration dates (minimal fields).",
+            name=OPENROUTER_ZDR_LIST,
+            required_keys=("openrouter_zdr_list_ready",),
+            summary="OpenRouter Zero-Data-Retention model list validation.",
             critical=False,
         ),
     ]

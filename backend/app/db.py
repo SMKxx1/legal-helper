@@ -78,42 +78,20 @@ SessionLocal = sessionmaker(
 
 
 def init_db() -> None:
-    """Create any missing tables + seed the default org (idempotent). Import models first so they
-    register on ``Base.metadata``.
+    """Create any missing tables (idempotent). Import models first so they register on
+    ``Base.metadata``.
 
     Alembic is the SOLE source of truth for schema CHANGES: deploy runs ``python -m app.db_migrate``
     -> ``alembic upgrade head`` before the app starts, and every column/index is declared on the ORM
-    models (so a fresh ``create_all`` is schema-equivalent to ``alembic upgrade head`` — exercised by
-    the CI ``alembic upgrade head`` gate, and verified at the 0017 cutover). ``create_all`` here is the
-    idempotent fresh-DB/test safety net only;
-    it never ALTERs an existing table. The historical ``_ADDED_COLUMNS`` in-place ADD COLUMN shim was
-    retired (PL-2) — to evolve the schema, write an Alembic revision, never patch columns here.
+    models (so a fresh ``create_all`` is schema-equivalent to ``alembic upgrade head``). ``create_all``
+    here is the idempotent fresh-DB/test safety net only; it never ALTERs an existing table.
     """
     from . import models  # noqa: F401  (populates Base.metadata)
     from .auth import (
-        models as _auth_models,  # noqa: F401  (registers identity/org tables)
+        models as _auth_models,  # noqa: F401  (registers identity/session tables)
     )
 
     Base.metadata.create_all(bind=engine)
-    _seed_default_org()
-
-
-def _seed_default_org() -> None:
-    """Ensure the single bootstrap org row exists (idempotent). Contracts default ``org_id`` to it
-    and the bootstrap admin (P0-7) is created under it."""
-    from .auth.models import Org
-    from .refdata import seed_lookups
-    from .schemas import DEFAULT_ORG_ID, DEFAULT_ORG_NAME
-    from .seed_catalog import seed_templates_tokens
-
-    with SessionLocal() as s, s.begin():
-        if s.get(Org, DEFAULT_ORG_ID) is None:
-            s.add(Org(id=DEFAULT_ORG_ID, name=DEFAULT_ORG_NAME))
-        # Reference/lookup rows (jurisdictions, statuses, channels, …). Idempotent.
-        seed_lookups(s)
-        s.flush()  # lookups must exist before template/token FKs resolve
-        # The 8 templates + 16 tokens + token_template mapping. Idempotent.
-        seed_templates_tokens(s, DEFAULT_ORG_ID)
 
 
 def get_db() -> Iterator[Session]:

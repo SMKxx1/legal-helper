@@ -10,7 +10,6 @@ gateway-builder adapter selection (OpenRouter primary / direct-Anthropic fallbac
 from __future__ import annotations
 
 import json
-from types import SimpleNamespace
 
 import httpx
 import pytest
@@ -27,7 +26,6 @@ from app.ai.openrouter import (
     build_openrouter_request,
     validate_instance,
 )
-from app.pricing import DEFAULT_PRICING, _looks_priceable, cost_for, rate_for
 
 # A small portable schema (obeys engine.portable_schema rules) with a D1-meaningful order:
 # rationale (reasoning) before severity (verdict).
@@ -259,44 +257,15 @@ def test_byok_upstream_inference_cost_is_added() -> None:
     assert raw.usage.cost_usd == pytest.approx(0.021)
 
 
-def test_local_pricing_fallback_for_namespaced_model_when_no_cost(
+def test_missing_cost_records_zero_not_an_estimate(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    # Pin the table so a dev DB override can't skew the assertion.
-    monkeypatch.setattr(
-        "app.pricing.load_pricing",
-        lambda db=None: {k: dict(v) for k, v in DEFAULT_PRICING.items()},
-    )
+    # There is no local pricing table in this engine — if OpenRouter ever reports no cost at
+    # all, record 0 and log a warning rather than estimate one (see app.ai.openrouter._map_usage).
     usage = {"prompt_tokens": 1_000_000, "completion_tokens": 0}  # no "cost" reported
     handler, _ = capture([ok_body(usage=usage)])
-    raw = make_adapter(handler).complete(
-        make_req()
-    )  # anthropic/claude-opus-4-8: $5/MTok in
-    assert raw.usage.cost_usd == pytest.approx(5.0)
-
-
-def test_pricing_namespace_strip() -> None:
-    table = {k: dict(v) for k, v in DEFAULT_PRICING.items()}
-    assert rate_for("anthropic/claude-opus-4-8", table) == {
-        "input": 5.0,
-        "output": 25.0,
-    }
-    # The strip must run BEFORE the family fallback: Opus 4.1 has its own (pricier) row.
-    assert rate_for("anthropic/claude-opus-4-1", table) == {
-        "input": 15.0,
-        "output": 75.0,
-    }
-    # Dated suffixes still prefix-match after the strip.
-    assert rate_for("anthropic/claude-sonnet-4-6-20260101", table) == {
-        "input": 3.0,
-        "output": 15.0,
-    }
-    # Existing un-namespaced behavior unchanged.
-    assert rate_for("claude-haiku-4-5", table) == {"input": 1.0, "output": 5.0}
-    assert _looks_priceable("anthropic/claude-opus-4-8") is True
-    # Non-Claude ids stay unpriced locally (OpenRouter's reported cost is the source for those).
-    assert _looks_priceable("openai/gpt-5-mini") is False
-    assert cost_for("openai/gpt-5-mini", 1000, 10, table) is None
+    raw = make_adapter(handler).complete(make_req())
+    assert raw.usage.cost_usd == 0.0
 
 
 # --------------------------------------------------------------------------- #
@@ -703,57 +672,8 @@ def test_complete_strips_unknown_fields_without_a_repair_round_trip() -> None:
     assert "playbook" not in json.loads(raw.text)["findings"][0]
 
 
-# --------------------------------------------------------------------------- #
-# Gateway-builder adapter selection (routes_v1)
-# --------------------------------------------------------------------------- #
-def test_build_gateways_selects_openrouter_when_configured(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    from app.api import routes_v1
-
-    monkeypatch.setattr(routes_v1.settings, "openrouter_api_key", "sk-or-x")
-    routes_v1._build_gateways.cache_clear()
-    try:
-        cfg = SimpleNamespace(anthropic_api_key="")
-        deep = routes_v1.build_engine_gateways(cfg, mode="deep")
-        assert set(deep) == {"primary", "router"}  # tier structure preserved
-        assert type(deep["primary"].adapter).__name__ == "OpenRouterAdapter"
-        assert deep["primary"].adapter.model_id == "anthropic/claude-opus-4-8"
-        assert deep["router"].adapter.model_id == "anthropic/claude-haiku-4-5"
-        assert deep["primary"].adapter.zdr_only is True  # default: fail-closed ZDR
-        quick = routes_v1.build_engine_gateways(cfg, mode="quick")
-        assert quick["primary"].adapter.model_id == "anthropic/claude-sonnet-4-6"
-    finally:
-        routes_v1._build_gateways.cache_clear()
-
-
-def test_build_gateways_falls_back_to_direct_anthropic(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    from app.api import routes_v1
-
-    monkeypatch.setattr(routes_v1.settings, "openrouter_api_key", "")
-    routes_v1._build_gateways.cache_clear()
-    try:
-        cfg = SimpleNamespace(anthropic_api_key="sk-ant-x")
-        deep = routes_v1.build_engine_gateways(cfg, mode="deep")
-        assert set(deep) == {"primary", "router"}
-        assert type(deep["primary"].adapter).__name__ == "AnthropicAdapter"
-        assert deep["primary"].adapter.model_id == "claude-opus-4-8"
-        assert deep["router"].adapter.model_id == "claude-haiku-4-5"
-    finally:
-        routes_v1._build_gateways.cache_clear()
-
-
-def test_build_gateways_with_no_keys_is_503(monkeypatch: pytest.MonkeyPatch) -> None:
-    from app.api import routes_v1
-
-    monkeypatch.setattr(routes_v1.settings, "openrouter_api_key", "")
-    routes_v1._build_gateways.cache_clear()
-    try:
-        with pytest.raises(routes_v1.EngineError):
-            routes_v1.build_engine_gateways(
-                SimpleNamespace(anthropic_api_key=""), mode="deep"
-            )
-    finally:
-        routes_v1._build_gateways.cache_clear()
+# Gateway-builder / adapter-selection tests (the old `routes_v1.build_engine_gateways`, which
+# chose between OpenRouter and a direct-Anthropic fallback per request) were dropped along with
+# `routes_v1.py`: OpenRouter is now the ONLY provider, and the key is the signed-in user's own
+# (Phase 1), never read from process-wide settings. Phase 2's `agents/orchestrator.py` gets its
+# own gateway-construction tests once that replacement exists.

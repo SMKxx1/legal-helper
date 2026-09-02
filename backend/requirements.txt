@@ -1,71 +1,36 @@
-# NDA Assistant — backend dependencies (P0 scaffold). Pinned; validated on CPython 3.13.
-# Pins for deps shared with the old engine (nda-review-cloud) are kept identical so the P1 port
-# drops in without a resolver fight.
+# Legal Helper backend dependencies. Pinned; validated on CPython 3.13.
 
 # ---- Web framework ---------------------------------------------------------
 fastapi==0.136.3
-uvicorn[standard]==0.49.0        # ASGI server (invoked, not imported): `uvicorn app.main:create_app --factory`
+uvicorn[standard]==0.49.0        # ASGI server: `uvicorn app.main:create_app --factory`
 pydantic==2.13.4
 pydantic-settings==2.14.1        # env/.env-driven Settings (app/config.py)
+python-multipart==0.0.30         # multipart .docx uploads
 
-# ---- Persistence (P1 data-layer port) --------------------------------------
-# Pins identical to the old engine (nda-review-cloud) so the ported models/alembic drop in cleanly.
-SQLAlchemy==2.0.50               # ORM + engine (SQLite dev/tests, Postgres prod) — app/db.py, models*
-alembic==1.18.4                  # schema migrations; SOLE source of truth for schema CHANGES
-argon2-cffi==25.1.0              # argon2id password hashing for user accounts (auth plane)
-psycopg2-binary==2.9.10          # Postgres driver (prod); SQLite needs nothing
+# ---- Persistence ------------------------------------------------------------
+SQLAlchemy==2.0.50                # ORM + engine (SQLite dev/tests, Postgres prod) — app/db.py, models
+alembic==1.18.4                   # schema migrations; SOLE source of truth for schema CHANGES
+psycopg2-binary==2.9.10           # Postgres driver (prod); SQLite needs nothing
 
-# ---- HTTP request parsing (multipart uploads on /v1) ------------------------
-python-multipart==0.0.30
+# ---- Auth + secrets at rest --------------------------------------------------
+argon2-cffi==25.1.0                # argon2id password hashing for user accounts
+cryptography==48.0.0                # Fernet: encrypts each user's OpenRouter key at rest
 
-# ---- Document ingestion (P1 engine port) ------------------------------------
-python-docx==1.2.0               # .docx parse + tokenised template fill (generation)
-pdfplumber==0.11.9               # PDF text extraction (primary path)
-pypdf==6.12.2                    # PDF fallback extraction
-markdown-it-py==3.0.0            # markdown -> blocks for the OCR conversion path
-fpdf2==2.8.5                     # display-PDF generation for non-PDF uploads (pure Python)
-PyMuPDF==1.27.2.3                # PDF render for OCR + inline-edit engine (AGPL-3.0: internal, unmodified use)
-pytesseract==0.3.13              # Tesseract OCR wrapper (binary ships in the Docker image)
-wordfreq==3.1.1                  # dictionary signal for the OCR quality gate
-numpy==2.5.0                     # brute-force cosine over the precomputed playbook embedding index
+# ---- Document handling -------------------------------------------------------
+python-docx==1.2.0                  # .docx parse (the add-in only ever sends .docx)
 
-# ---- AI providers (P1 gateway port + OpenRouter adapter) ---------------------
-anthropic==0.105.2               # direct-Anthropic fallback adapter (verified against gateway port)
+# ---- HTTP / object storage ----------------------------------------------------
+httpx==0.28.1                       # OpenRouter calls + test client over ASGI transport
+boto3==1.40.0                       # Railway bucket (S3-compatible) client
 
-# ---- Integrations & security -------------------------------------------------
-cryptography==48.0.0             # Fernet secrets-at-rest (app_settings) + RS256 backend for PyJWT
-PyJWT==2.10.1                    # DocuSign JWT-Grant auth (P3)
-redis==5.2.1                     # optional shared rate-limit store (lazy import; REDIS_URL)
+# ---- Structured logging -----------------------------------------------------
+structlog==26.1.0                   # console renderer in dev, JSON in prod
 
-# ---- Worker ------------------------------------------------------------------
-APScheduler==3.10.4              # worker schedules (claimer, sweeps) under pg advisory locks
-
-# ---- Bot core (P2: Slack + email intake) -------------------------------------
-# Slack Bolt for the in-process events + interactivity surface; slack_sdk is Bolt's transitive Web
-# API + v0 HMAC SignatureVerifier dep, pinned explicitly so the gate's signature check is stable.
-slack-bolt==1.29.0               # Slack events/actions app (app/bot/channels/slack*.py)
-slack_sdk==3.43.0                # Slack Web API client + SignatureVerifier (fail-closed request verify)
-imap-tools==1.13.0               # IMAP UNSEEN poller for email intake (app/worker + email_in channel)
-
-# ---- Form service (P3: server-rendered public pages) -------------------------
-jinja2==3.1.6                    # /f fill pages + admin templates later; no JS build chain
-
-# ---- Structured logging ----------------------------------------------------
-structlog==26.1.0                # console renderer in dev, JSON in prod (app/telemetry/logging.py)
-
-# ---- Telemetry export (capability: telemetry_export) -----------------------
-# The OTel API/SDK are always present: get_tracer() is a silent no-op until an exporter is wired,
-# so tracing calls are safe at import and boot. The Azure exporter below is IMPORT-GUARDED at
-# runtime (app/telemetry/otel.py) — a missing APPLICATIONINSIGHTS_CONNECTION_STRING *or* a missing/
-# broken azure package degrades the capability to disabled/unhealthy, it never breaks boot.
-opentelemetry-api==1.43.0
-opentelemetry-sdk==1.43.0
-azure-monitor-opentelemetry==1.8.9
+# ---- Landing page -------------------------------------------------------------
+jinja2==3.1.6                        # the `/` landing page (Phase 3)
 
 # ---- Tests & tooling (part of the shipped contract; `make check`) ----------
-httpx==0.28.1                    # test client over ASGI transport (no network) + future provider HTTP
 pytest==9.0.3
-pytest-asyncio==1.4.0            # asyncio_mode=auto (pytest.ini) for async ASGI tests
-ruff==0.15.19                    # format + lint (E,F,I,UP,B,SIM) — config in pyproject.toml
-mypy==2.1.0                      # static typing — config in pyproject.toml
-reportlab>=4.0
+pytest-asyncio==1.4.0                # asyncio_mode=auto (pytest.ini) for async ASGI tests
+ruff==0.15.19                        # format + lint (E,F,I,UP,B,SIM) — config in pyproject.toml
+mypy==2.1.0                          # static typing — config in pyproject.toml

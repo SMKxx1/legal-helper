@@ -12,9 +12,8 @@ def test_zero_env_defaults() -> None:
     assert s.app_env == "dev"
     assert s.log_level == "DEBUG"  # dev default
     assert s.log_format == "console"  # dev default
-    # P1: DATABASE_URL now carries the source engine's SQLite default (was "" reserved in P0).
     assert s.database_url == "sqlite:///./data/app.db"
-    assert s.applicationinsights_connection_string == ""
+    assert s.port == 8000
 
 
 def test_prod_derives_info_and_json(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -42,59 +41,72 @@ def test_invalid_log_format_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_config_presence_helpers(monkeypatch: pytest.MonkeyPatch) -> None:
     s = Settings(_env_file=None)
-    key = "applicationinsights_connection_string"
+    key = "s3_bucket"
     assert s.is_configured(key) is False
-    assert s.missing_config(key) == ["APPLICATIONINSIGHTS_CONNECTION_STRING"]
+    assert s.missing_config(key) == ["S3_BUCKET"]
 
-    monkeypatch.setenv(
-        "APPLICATIONINSIGHTS_CONNECTION_STRING", "InstrumentationKey=abc"
-    )
+    monkeypatch.setenv("S3_BUCKET", "documents")
     s2 = Settings(_env_file=None)
     assert s2.is_configured(key) is True
     assert s2.missing_config(key) == []
 
 
-# --------------------------------------------------------------------------- #
-# P1 data-layer / engine settings merged from the source engine.
-# --------------------------------------------------------------------------- #
-def test_ported_field_defaults() -> None:
+def test_no_shared_openrouter_key_field() -> None:
+    # There is deliberately no global OPENROUTER_API_KEY: keys belong to individual users.
     s = Settings(_env_file=None)
-    # OpenRouter reserved for wave 3 (unused now).
-    assert s.openrouter_api_key == ""
+    assert not hasattr(s, "openrouter_api_key")
+
+
+def test_field_defaults() -> None:
+    s = Settings(_env_file=None)
+    assert s.app_secret_key == ""
+    assert s.addin_id == "7b3f9a42-1c6e-4d2a-9f51-0a1b2c3d4e5f"
+    assert s.model_classifier == "anthropic/claude-haiku-4-5"
+    assert s.model_quick == "anthropic/claude-sonnet-4-6"
+    assert s.model_deep == "anthropic/claude-opus-4-8"
     assert s.openrouter_base_url == "https://openrouter.ai/api/v1"
-    assert s.openrouter_zdr_only is True
-    # Anthropic fallback adapter kept.
-    assert s.anthropic_model == "claude-sonnet-4-6"
-    assert s.anthropic_max_tokens == 1024
-    # Engine caps / persistence defaults.
-    assert s.review_concurrency == 3
+    assert s.openrouter_provider_only_deep == "google-vertex"
+    assert s.openrouter_provider_only_deep_list == ("google-vertex",)
+    assert s.openrouter_zdr_list_ready is False
     assert s.provider_timeout_s == 150.0
-    assert s.sim_cache_enabled is True
-    assert s.max_upload_mb == 25
-    assert s.max_upload_bytes == 25 * 1024 * 1024
-    assert s.data_dir == "./data"
+    assert s.review_concurrency == 2
+    assert s.max_upload_mb == 10
+    assert s.max_upload_bytes == 10 * 1024 * 1024
+    assert s.max_doc_chars == 120000
+    assert s.max_monthly_cost_usd == 5.0
+    assert s.max_docs_per_user == 20
+    assert s.s3_endpoint == ""
+    assert s.s3_bucket == ""
+    assert s.s3_access_key_id == ""
+    assert s.s3_secret_access_key == ""
+    assert s.s3_region == "auto"
+    assert s.seed_demo_data is False
+    assert s.demo_user_password == "LegalHelper2026!"
 
 
-def test_dropped_signed_field_is_gone() -> None:
-    # The retired SIGNED-principal HMAC key must NOT be a settings field anymore.
-    s = Settings(_env_file=None)
-    assert not hasattr(s, "auth_principal_hmac_key")
-    assert not hasattr(s, "ai_provider")
-
-
-def test_env_override_of_ported_fields(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_env_override_of_fields(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("REVIEW_CONCURRENCY", "8")
-    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-test")
-    monkeypatch.setenv("SIM_CACHE_ENABLED", "false")
+    monkeypatch.setenv("SEED_DEMO_DATA", "true")
+    monkeypatch.setenv("MAX_MONTHLY_COST_USD", "12.5")
     s = Settings(_env_file=None)
     assert s.review_concurrency == 8
-    assert s.openrouter_api_key == "sk-or-test"
-    assert s.sim_cache_enabled is False
+    assert s.seed_demo_data is True
+    assert s.max_monthly_cost_usd == 12.5
 
 
 def test_upload_cap_clamped_to_at_least_one(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("MAX_UPLOAD_MB", "0")  # would make the bounded read unbounded
     assert Settings(_env_file=None).max_upload_mb == 1
+
+
+def test_docs_per_user_clamped_to_at_least_one(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MAX_DOCS_PER_USER", "0")
+    assert Settings(_env_file=None).max_docs_per_user == 1
+
+
+def test_monthly_cost_cap_never_negative(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MAX_MONTHLY_COST_USD", "-5")
+    assert Settings(_env_file=None).max_monthly_cost_usd == 0.0
 
 
 def test_postgres_scheme_normalized_to_psycopg2(
@@ -112,55 +124,14 @@ def test_postgres_scheme_normalized_to_psycopg2(
     assert Settings(_env_file=None).database_url == "sqlite:///./x.db"
 
 
-# --------------------------------------------------------------------------- #
-# P4 archive / watcher / expiration settings (PLAN §3.10, §3.8).
-# --------------------------------------------------------------------------- #
-def test_p4_field_defaults() -> None:
-    s = Settings(_env_file=None)
-    # Google Drive archive group — all secrets empty by default; cache folder name has a default.
-    assert s.google_oauth_client_id == ""
-    assert s.google_oauth_client_secret == ""
-    assert s.google_oauth_refresh_token == ""
-    assert s.drive_archive_folder_id == ""
-    assert s.drive_cache_folder_name == "Signed Company NDAs Cache"
-    # Airtable expiration-tracker group — all empty by default.
-    assert s.airtable_pat == ""
-    assert s.airtable_base_id == ""
-    assert s.airtable_table == ""
-    # Expiration alias — the benchmark contract pin (§3.8): gemini-3.5-flash via google-vertex.
-    assert s.openrouter_model_expiration == "google/gemini-3.5-flash"
-    assert s.expiration_provider_only == "google-vertex"
-    assert s.expiration_provider_only_list == ("google-vertex",)
-    # Watcher cadence — the OLD n8n bug ran at 1min; 5 is the intended cadence (§5). Sweep at 02:00.
-    assert s.watcher_interval_minutes == 5
-    assert s.expiration_sweep_hour_utc == 2
-
-
-def test_expiration_provider_only_list_parses_multiple_and_blank() -> None:
+def test_openrouter_provider_only_deep_list_parses_multiple_and_blank() -> None:
     s = Settings(
-        _env_file=None, expiration_provider_only="google-vertex, google-ai-studio"
+        _env_file=None, openrouter_provider_only_deep="google-vertex, anthropic"
     )
-    assert s.expiration_provider_only_list == ("google-vertex", "google-ai-studio")
-    # Blank -> empty tuple (would let any ZDR-qualifying route serve the alias).
+    assert s.openrouter_provider_only_deep_list == ("google-vertex", "anthropic")
     assert (
         Settings(
-            _env_file=None, expiration_provider_only=""
-        ).expiration_provider_only_list
+            _env_file=None, openrouter_provider_only_deep=""
+        ).openrouter_provider_only_deep_list
         == ()
     )
-
-
-def test_watcher_interval_clamped_to_at_least_one(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("WATCHER_INTERVAL_MINUTES", "0")  # would busy-loop the worker
-    assert Settings(_env_file=None).watcher_interval_minutes == 1
-
-
-def test_expiration_sweep_hour_clamped_into_day(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("EXPIRATION_SWEEP_HOUR_UTC", "99")
-    assert Settings(_env_file=None).expiration_sweep_hour_utc == 23
-    monkeypatch.setenv("EXPIRATION_SWEEP_HOUR_UTC", "-3")
-    assert Settings(_env_file=None).expiration_sweep_hour_utc == 0

@@ -1,8 +1,8 @@
 {
-  "name": "nda-review-word-addin",
+  "name": "legal-helper-word-addin",
   "version": "1.0.0",
   "private": true,
-  "description": "NDA Review Word add-in (taskpane). Pure redline/diff helpers are unit-tested with Node's built-in test runner — no dependencies.",
+  "description": "Legal Helper Word add-in (taskpane). Pure redline/diff helpers are unit-tested with Node's built-in test runner — no dependencies.",
   "scripts": {
     "test": "node --test \"test/**/*.test.js\"",
     "format": "prettier --write .",

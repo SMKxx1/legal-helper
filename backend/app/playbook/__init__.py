@@ -1,7 +1,8 @@
-"""Versioned, structured playbook (Phase 1).
+"""Versioned, structured playbook.
 
-The playbook is the single source of truth for Amperesand's clause positions
-(``playbook_build/playbook_nda_v{N}.json``). ``coverage`` derives the closed
-required-clause checklist from it deterministically (improvement A) so the
-coverage pass only has to *locate* clauses, never *enumerate* them.
+The playbook is the single source of truth for the reviewer's clause positions. ``coverage``
+derives the closed required-clause checklist from it deterministically so the coverage pass only
+has to *locate* clauses, never *enumerate* them. Phase 2 replaces the NDA-specific playbook here
+with the generic ``playbook/legal_helper_playbook.json`` (plan §4.5) and this module becomes
+``playbook/loader.py``.
 """

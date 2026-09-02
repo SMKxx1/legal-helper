@@ -226,7 +226,7 @@ ROUTER_SCHEMA_V1: dict = {
         },
         "paper_owner": {
             "type": "string",
-            "enum": ["amperesand", "counterparty", "third_party", "unknown"],
+            "enum": ["self", "counterparty", "third_party", "unknown"],
         },
         "jurisdiction": {"type": "string", "enum": ["us", "sg", "unknown"]},
         "counterparty_type": {

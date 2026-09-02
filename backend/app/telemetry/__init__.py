@@ -1,4 +1,4 @@
-"""Telemetry: structured logging, correlation ids, and OTel export.
+"""Telemetry: structured logging and per-request correlation ids.
 
 Public surface re-exported for ``from app.telemetry import ...``.
 """
@@ -14,16 +14,13 @@ from .logging import (
     get_correlation_id,
     get_logger,
 )
-from .otel import configure_tracing, get_tracer
 
 __all__ = [
     "CORRELATION_ID_HEADER",
     "CorrelationIdMiddleware",
     "bind_correlation_id",
     "configure_logging",
-    "configure_tracing",
     "correlation_id_var",
     "get_correlation_id",
     "get_logger",
-    "get_tracer",
 ]

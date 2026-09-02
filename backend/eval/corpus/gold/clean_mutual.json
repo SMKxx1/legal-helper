@@ -1,9 +1,0 @@
-{
-  "risk_tier_allowed": ["green", "yellow"],
-  "false_green_budget_eligible": false,
-  "must_find": [],
-  "must_not": [
-    {"match": {"keywords": ["governing law", "cayman"], "kind": "finding"}}
-  ],
-  "notes": "The Amperesand standard template with cosmetic rewording only (no substantive change). A clean pass is the CORRECT outcome, so GREEN is a legitimate verdict and this case is deliberately NOT part of the false-green budget (false_green_budget_eligible=false). It anchors the specificity end of the corpus: if a clean mutual NDA starts scoring red, the engine has become trigger-happy. must_not guards against a hallucinated foreign-jurisdiction finding."
-}

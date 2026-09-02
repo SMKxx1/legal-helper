@@ -1,4 +1,4 @@
-# NDA Assistant — developer tasks. All targets operate on the backend/ package.
+# Legal Helper — developer tasks. Most targets operate on the backend/ package.
 # Quickstart:  make install && make check
 
 BACKEND := backend
@@ -6,7 +6,7 @@ VENV := $(BACKEND)/.venv
 PY := $(VENV)/bin/python
 PYTHON ?= python3.13
 
-.PHONY: venv install run worker test lint type check verify eval eval-live clean
+.PHONY: venv install run test lint type check seed smoke addin-test clean
 
 # Create the venv only when it is missing (the python binary is the sentinel).
 $(PY):
@@ -21,10 +21,7 @@ install: $(PY)  ## Install pinned dependencies into the venv
 run: $(PY)  ## Run the API locally with autoreload on :8000
 	cd $(BACKEND) && .venv/bin/uvicorn app.main:create_app --factory --reload --host 0.0.0.0 --port 8000
 
-worker: $(PY)  ## Run the worker stub
-	cd $(BACKEND) && .venv/bin/python -m app.worker
-
-test: $(PY)  ## Run the test suite
+test: $(PY)  ## Run the backend test suite
 	cd $(BACKEND) && .venv/bin/pytest
 
 lint: $(PY)  ## Ruff lint + format check
@@ -35,14 +32,14 @@ type: $(PY)  ## Static type check
 
 check: lint type test  ## Full gate: lint + type + test
 
-verify: $(PY)  ## Drive the REAL generation pipeline end-to-end (no mocks/network/LLM) and inspect the output
-	cd $(BACKEND) && .venv/bin/python -m scripts.verify_generation_e2e
+seed: $(PY)  ## Seed synthetic demo users (+ reviews from Phase 3 on) into the local DB
+	cd $(BACKEND) && .venv/bin/python -m app.seed_demo
 
-eval: $(PY)  ## Offline eval: validate the corpus manifest + gold files + docs (no network)
-	cd $(BACKEND) && .venv/bin/python -m eval.run_eval
+smoke: $(PY)  ## Hit a running deployment's public endpoints and report pass/fail
+	cd $(BACKEND) && .venv/bin/python scripts/smoke.py $(ARGS)
 
-eval-live: $(PY)  ## Live eval: run the corpus through the engine and enforce the release gates (needs a provider key)
-	cd $(BACKEND) && .venv/bin/python -m eval.run_eval --live
+addin-test:  ## Run the Word add-in's Node test suite
+	cd word-addin && npm test
 
 clean:  ## Remove caches (keeps the venv)
 	rm -rf $(BACKEND)/.pytest_cache $(BACKEND)/.mypy_cache $(BACKEND)/.ruff_cache

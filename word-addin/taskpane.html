@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Amperesand NDA Review</title>
+    <title>Legal Helper</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -20,8 +20,8 @@
         <div class="brand-left">
           <div class="brand-mark" aria-hidden="true">&amp;</div>
           <div>
-            <div class="brand-name display">Amperesand</div>
-            <div class="brand-sub">NDA Review</div>
+            <div class="brand-name display">Legal Helper</div>
+            <div class="brand-sub">Document Review</div>
           </div>
         </div>
         <button
@@ -37,35 +37,11 @@
     </header>
 
     <div class="content">
-      <!-- mode switch: Review (existing flow) | Tokenize template (new) -->
-      <div class="mode-row">
-        <div class="seg-toggle mode-switch" role="group" aria-label="Add-in mode">
-          <button
-            id="mode-review"
-            class="seg-btn is-on"
-            type="button"
-            data-mode="review"
-            aria-pressed="true"
-          >
-            Review
-          </button>
-          <button
-            id="mode-tokenize"
-            class="seg-btn"
-            type="button"
-            data-mode="tokenize"
-            aria-pressed="false"
-          >
-            Tokenize template
-          </button>
-        </div>
-      </div>
-
-      <!-- settings (shared by both modes) -->
+      <!-- settings -->
       <section id="settings" class="panel hidden" aria-label="Settings">
         <label class="field">
-          <span class="field-label">Engine API base URL</span>
-          <input id="api-base" type="text" placeholder="https://nda-api.example.com" />
+          <span class="field-label">API base URL</span>
+          <input id="api-base" type="text" placeholder="https://legal-helper.example.com" />
         </label>
         <label class="field">
           <span class="field-label">API key (optional)</span>
@@ -74,7 +50,6 @@
         <button id="save-settings" class="btn-secondary">Save</button>
       </section>
 
-      <!-- REVIEW MODE: the existing review flow, wrapped so the mode switch can show/hide it -->
       <section id="review-section" aria-label="Review">
         <!-- PRE-REVIEW: review-scope + review-depth + primary action (hidden once a review has run) -->
         <div id="prereview">
@@ -123,7 +98,7 @@
               <span class="switch-knob" aria-hidden="true"></span>
             </button>
           </div>
-          <button id="review-btn" class="btn-gold">Review this NDA&nbsp;&nbsp;&rarr;</button>
+          <button id="review-btn" class="btn-gold">Review this document&nbsp;&nbsp;&rarr;</button>
         </div>
 
         <p id="status" class="status" role="status" aria-live="polite"></p>
@@ -148,78 +123,8 @@
         <footer id="review-footer" class="hidden"><span id="meta"></span></footer>
       </section>
       <!-- /review-section -->
-
-      <!-- TOKENIZE MODE: turn selected doc text into {{tokens}}, scan the doc, save a template draft -->
-      <section id="tokenize-section" class="hidden" aria-label="Tokenize template">
-        <p id="tok-status" class="status" role="status" aria-live="polite"></p>
-
-        <!-- token palette -->
-        <div class="tok-block">
-          <div class="tok-h display">Token palette</div>
-          <p class="tok-instr">Select the text to replace in the document, then click a token.</p>
-          <div id="tok-palette" class="tok-palette" aria-live="polite"></div>
-        </div>
-
-        <!-- tokens already in this document -->
-        <div class="tok-block">
-          <div class="tok-h display">Tokens in this document</div>
-          <p class="tok-instr">
-            Scan the open document for <code>{{tokens}}</code> and flag any that aren&rsquo;t in the
-            registry.
-          </p>
-          <button id="tok-scan-btn" type="button" class="btn-secondary">Scan document</button>
-          <div id="tok-scan" class="tok-scan" aria-live="polite"></div>
-        </div>
-
-        <!-- send to template library -->
-        <div class="tok-block">
-          <div class="tok-h display">Send to template library</div>
-          <p class="tok-instr">
-            Save the open document as a draft template version &mdash; an admin can publish it in
-            the studio.
-          </p>
-          <div class="tok-form">
-            <label class="field">
-              <span class="field-label">Jurisdiction</span>
-              <select id="tok-jurisdiction" class="tok-select">
-                <option value="US">US</option>
-                <option value="SG">SG</option>
-              </select>
-            </label>
-            <label class="field">
-              <span class="field-label">Counterparty</span>
-              <select id="tok-counterparty" class="tok-select">
-                <option value="Company">Company</option>
-                <option value="ServiceProvider">Service Provider</option>
-                <option value="Individual">Individual</option>
-              </select>
-            </label>
-            <label class="field">
-              <span class="field-label">Mutuality</span>
-              <select id="tok-mutuality" class="tok-select">
-                <option value="NotApplicable">Not applicable</option>
-                <option value="Mutual">Mutual</option>
-                <option value="Unilateral">Unilateral</option>
-              </select>
-            </label>
-            <label class="field">
-              <span class="field-label">Variant</span>
-              <select id="tok-variant" class="tok-select">
-                <option value="tokenised">Tokenised</option>
-                <option value="empty">Empty</option>
-              </select>
-            </label>
-          </div>
-          <button id="tok-save-btn" type="button" class="btn-primary">
-            Save as template draft
-          </button>
-        </div>
-      </section>
     </div>
 
-    <!-- Optional server-injected config (apiBase + engine key) for on-prem zero-config deploys.
-       Ships as a no-op stub; the on-prem installer overwrites it with the real server values. -->
-    <script src="config.js"></script>
     <script src="taskpane.js"></script>
   </body>
 </html>

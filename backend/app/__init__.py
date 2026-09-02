@@ -1,1 +1,1 @@
-"""NDA Assistant backend application package."""
+"""Legal Helper backend application package."""

@@ -66,7 +66,7 @@ class UsageLedger:
 
 
 _LEDGER: contextvars.ContextVar[UsageLedger | None] = contextvars.ContextVar(
-    "nda_usage_ledger", default=None
+    "usage_ledger", default=None
 )
 
 

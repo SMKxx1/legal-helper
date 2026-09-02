@@ -5,15 +5,9 @@ from __future__ import annotations
 import pytest
 
 from app.capabilities import (
-    AIRTABLE,
-    DOCUSIGN,
-    EMAIL_IN,
-    EMAIL_OUT,
-    GOOGLE_DRIVE,
-    LLM_INFERENCE,
-    SLACK,
-    TALLY,
-    TELEMETRY_EXPORT,
+    BUCKET,
+    DATABASE,
+    OPENROUTER_ZDR_LIST,
     Capability,
     CapabilityRegistry,
     CapabilityState,
@@ -22,61 +16,61 @@ from app.capabilities import (
 from app.config import Settings
 
 
-def test_telemetry_disabled_without_config() -> None:
+def test_database_enabled_by_default_and_critical() -> None:
+    # SQLite works with zero config, so `database` is enabled out of the box; it is the only
+    # critical capability.
     reg = build_registry(Settings(_env_file=None))
-    assert reg.state(TELEMETRY_EXPORT) is CapabilityState.DISABLED
-    # A soft-disabled capability never affects liveness.
+    assert reg.state(DATABASE) is CapabilityState.ENABLED
+    assert reg.get(DATABASE).critical is True
     assert reg.healthy() is True
 
 
-def test_llm_inference_disabled_without_key() -> None:
+def test_bucket_disabled_without_config() -> None:
     reg = build_registry(Settings(_env_file=None))
-    assert reg.state(LLM_INFERENCE) is CapabilityState.DISABLED
-    status = reg.get(LLM_INFERENCE)
-    assert "OPENROUTER_API_KEY" in status.reason
-    # Non-critical for now: a missing key never fails liveness.
+    status = reg.get(BUCKET)
+    assert status.state is CapabilityState.DISABLED
+    assert "S3_ENDPOINT" in status.reason
+    assert "S3_BUCKET" in status.reason
     assert status.critical is False
     assert reg.healthy() is True
 
 
-def test_llm_inference_enabled_with_key(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-abc")
-    reg = build_registry(Settings(_env_file=None))
-    assert reg.state(LLM_INFERENCE) is CapabilityState.ENABLED
-
-
-def test_telemetry_enabled_with_config(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv(
-        "APPLICATIONINSIGHTS_CONNECTION_STRING", "InstrumentationKey=abc"
-    )
-    reg = build_registry(Settings(_env_file=None))
-    assert reg.state(TELEMETRY_EXPORT) is CapabilityState.ENABLED
-
-
-def test_unhealthy_then_recovered_reflects_config(
+def test_bucket_enabled_once_all_four_fields_set(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv(
-        "APPLICATIONINSIGHTS_CONNECTION_STRING", "InstrumentationKey=abc"
-    )
+    monkeypatch.setenv("S3_ENDPOINT", "https://s3.example.com")
+    monkeypatch.setenv("S3_BUCKET", "documents")
+    monkeypatch.setenv("S3_ACCESS_KEY_ID", "id")
+    monkeypatch.setenv("S3_SECRET_ACCESS_KEY", "secret")
     reg = build_registry(Settings(_env_file=None))
-
-    reg.mark_unhealthy(TELEMETRY_EXPORT, "exporter init failed")
-    status = reg.get(TELEMETRY_EXPORT)
-    assert status.state is CapabilityState.UNHEALTHY
-    assert "exporter init failed" in status.reason
-
-    # Config still present -> recovery lands back on ENABLED.
-    reg.mark_recovered(TELEMETRY_EXPORT)
-    assert reg.state(TELEMETRY_EXPORT) is CapabilityState.ENABLED
+    assert reg.state(BUCKET) is CapabilityState.ENABLED
 
 
-def test_recovery_reflects_config_removal() -> None:
-    # Config absent -> recovery lands on DISABLED, not ENABLED.
+def test_bucket_missing_one_field_stays_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("S3_ENDPOINT", "https://s3.example.com")
+    monkeypatch.setenv("S3_BUCKET", "documents")
+    monkeypatch.setenv("S3_ACCESS_KEY_ID", "id")
     reg = build_registry(Settings(_env_file=None))
-    reg.mark_unhealthy(TELEMETRY_EXPORT, "boom")
-    reg.mark_recovered(TELEMETRY_EXPORT)
-    assert reg.state(TELEMETRY_EXPORT) is CapabilityState.DISABLED
+    assert reg.state(BUCKET) is CapabilityState.DISABLED
+    assert "S3_SECRET_ACCESS_KEY" in reg.get(BUCKET).reason
+
+
+def test_openrouter_zdr_list_disabled_until_phase_2_wires_it() -> None:
+    # There is no live check yet (Phase 2) — the capability reports disabled unconditionally.
+    reg = build_registry(Settings(_env_file=None))
+    status = reg.get(OPENROUTER_ZDR_LIST)
+    assert status.state is CapabilityState.DISABLED
+    assert status.critical is False
+    assert reg.healthy() is True
+
+
+def test_boot_with_no_env_is_healthy_and_reports_exactly_three_capabilities() -> None:
+    reg = build_registry(Settings(_env_file=None))
+    assert reg.healthy() is True
+    names = {row["name"] for row in reg.report()}
+    assert names == {DATABASE, BUCKET, OPENROUTER_ZDR_LIST}
 
 
 def test_critical_capability_flips_liveness() -> None:
@@ -99,111 +93,20 @@ def test_critical_capability_flips_liveness() -> None:
     assert reg.healthy() is True
 
 
-def test_boot_with_no_env_is_healthy_and_reports_default_capabilities() -> None:
+def test_recovery_reflects_config_removal(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("S3_ENDPOINT", "https://s3.example.com")
+    monkeypatch.setenv("S3_BUCKET", "documents")
+    monkeypatch.setenv("S3_ACCESS_KEY_ID", "id")
+    monkeypatch.setenv("S3_SECRET_ACCESS_KEY", "secret")
     reg = build_registry(Settings(_env_file=None))
-    assert reg.healthy() is True
-    names = {row["name"] for row in reg.report()}
-    # P2 adds the three bot channels; P3 adds forms + docusign; P4 adds google_drive + airtable
-    # (all non-critical, disabled bare).
-    assert names == {
-        TELEMETRY_EXPORT,
-        LLM_INFERENCE,
-        SLACK,
-        EMAIL_IN,
-        EMAIL_OUT,
-        TALLY,
-        DOCUSIGN,
-        GOOGLE_DRIVE,
-        AIRTABLE,
-    }
+    assert reg.state(BUCKET) is CapabilityState.ENABLED
 
+    reg.mark_unhealthy(BUCKET, "boom")
+    assert reg.state(BUCKET) is CapabilityState.UNHEALTHY
 
-def test_bot_channels_disabled_without_config_and_never_fail_liveness() -> None:
-    reg = build_registry(Settings(_env_file=None))
-    for name in (SLACK, EMAIL_IN, EMAIL_OUT, TALLY, DOCUSIGN):
-        status = reg.get(name)
-        assert status.state is CapabilityState.DISABLED
-        assert status.critical is False
-    assert reg.healthy() is True
-
-
-def test_slack_enabled_needs_both_token_and_secret(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    # One of the two Slack keys is not enough — both are required.
-    monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-abc")
-    reg = build_registry(Settings(_env_file=None))
-    assert reg.state(SLACK) is CapabilityState.DISABLED
-    assert "SLACK_SIGNING_SECRET" in reg.get(SLACK).reason
-
-    monkeypatch.setenv("SLACK_SIGNING_SECRET", "shhh")
-    reg2 = build_registry(Settings(_env_file=None))
-    assert reg2.state(SLACK) is CapabilityState.ENABLED
-
-
-def test_email_channels_enable_on_their_own_config(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("IMAP_HOST", "imap.example.com")
-    monkeypatch.setenv("IMAP_USER", "nda-bot")
-    monkeypatch.setenv("IMAP_PASSWORD", "pw")
-    monkeypatch.setenv("SMTP_HOST", "smtp.example.com")
-    monkeypatch.setenv("SMTP_USER", "nda-bot")
-    monkeypatch.setenv("SMTP_PASSWORD", "pw")
-    reg = build_registry(Settings(_env_file=None))
-    assert reg.state(EMAIL_IN) is CapabilityState.ENABLED
-    assert reg.state(EMAIL_OUT) is CapabilityState.ENABLED
-
-
-def test_google_drive_and_airtable_disabled_bare_and_never_fail_liveness() -> None:
-    reg = build_registry(Settings(_env_file=None))
-    for name in (GOOGLE_DRIVE, AIRTABLE):
-        status = reg.get(name)
-        assert status.state is CapabilityState.DISABLED
-        assert status.critical is False
-    assert reg.healthy() is True
-
-
-def test_google_drive_needs_full_oauth_trio_and_archive_folder(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    # The offline-grant OAuth trio alone is not enough — the destination folder id is also required.
-    monkeypatch.setenv("GOOGLE_OAUTH_CLIENT_ID", "client-abc")
-    monkeypatch.setenv("GOOGLE_OAUTH_CLIENT_SECRET", "secret-abc")
-    monkeypatch.setenv("GOOGLE_OAUTH_REFRESH_TOKEN", "refresh-abc")
-    reg = build_registry(Settings(_env_file=None))
-    assert reg.state(GOOGLE_DRIVE) is CapabilityState.DISABLED
-    assert "DRIVE_ARCHIVE_FOLDER_ID" in reg.get(GOOGLE_DRIVE).reason
-
-    monkeypatch.setenv("DRIVE_ARCHIVE_FOLDER_ID", "1AbCdEfGhIjK")
-    reg2 = build_registry(Settings(_env_file=None))
-    assert reg2.state(GOOGLE_DRIVE) is CapabilityState.ENABLED
-
-
-def test_google_drive_missing_one_oauth_field_stays_disabled(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    # Everything present EXCEPT the refresh token -> still disabled, reason names the exact env var.
-    monkeypatch.setenv("GOOGLE_OAUTH_CLIENT_ID", "client-abc")
-    monkeypatch.setenv("GOOGLE_OAUTH_CLIENT_SECRET", "secret-abc")
-    monkeypatch.setenv("DRIVE_ARCHIVE_FOLDER_ID", "1AbCdEfGhIjK")
-    reg = build_registry(Settings(_env_file=None))
-    assert reg.state(GOOGLE_DRIVE) is CapabilityState.DISABLED
-    assert "GOOGLE_OAUTH_REFRESH_TOKEN" in reg.get(GOOGLE_DRIVE).reason
-    # drive_cache_folder_name carries a default, so its absence never blocks the capability.
-    assert "DRIVE_CACHE_FOLDER_NAME" not in reg.get(GOOGLE_DRIVE).reason
-
-
-def test_airtable_needs_all_three_fields(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("AIRTABLE_PAT", "pat-abc")
-    monkeypatch.setenv("AIRTABLE_BASE_ID", "appXXXXXXXXXXXXXX")
-    reg = build_registry(Settings(_env_file=None))
-    assert reg.state(AIRTABLE) is CapabilityState.DISABLED
-    assert "AIRTABLE_TABLE" in reg.get(AIRTABLE).reason
-
-    monkeypatch.setenv("AIRTABLE_TABLE", "Expirations")
-    reg2 = build_registry(Settings(_env_file=None))
-    assert reg2.state(AIRTABLE) is CapabilityState.ENABLED
+    # Config still present -> recovery lands back on ENABLED.
+    reg.mark_recovered(BUCKET)
+    assert reg.state(BUCKET) is CapabilityState.ENABLED
 
 
 def test_duplicate_capability_rejected() -> None:
@@ -247,10 +150,8 @@ async def test_run_probes_skips_disabled_capabilities() -> None:
         probed = True
 
     # Required key is absent -> capability is DISABLED -> its probe must not run.
-    # (Keyed on openrouter_api_key, which is empty by default; database_url now carries a
-    # non-empty SQLite default so it no longer serves as an "always-absent" gate.)
     reg = CapabilityRegistry(
-        [Capability("gated", ("openrouter_api_key",), "needs a key", probe=probe)],
+        [Capability("gated", ("s3_bucket",), "needs a bucket name", probe=probe)],
         Settings(_env_file=None),
     )
     await reg.run_probes()

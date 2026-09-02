@@ -1,11 +1,11 @@
 // Dev HTTPS server for the Word add-in (LOCAL testing).
 //
 // Serves THIS folder's add-in static files over HTTPS on :3000 using the Office dev cert (so Word
-// trusts it) AND reverse-proxies /v1, /api, /healthz to the backend on :8000 — so the add-in
-// (https://localhost:3000) reaches the engine SAME-ORIGIN (no mixed-content, no CORS). The add-in's
-// apiBase resolves to its own origin, so /v1 calls land here and get proxied to the backend.
+// trusts it) AND reverse-proxies /api, /healthz, /manifest.xml to the backend on :8000 — so the
+// add-in (https://localhost:3000) reaches the API SAME-ORIGIN (no mixed-content, no CORS). The
+// add-in's apiBase resolves to its own origin, so /api calls land here and get proxied to the backend.
 //
-// Run the nda-review-cloud backend first (./dev.sh, or uvicorn on :8000), then: node word-addin/dev-server.mjs
+// Run the backend first (`make run`, or uvicorn on :8000), then: node word-addin/dev-server.mjs
 import https from 'node:https';
 import http from 'node:http';
 import fs from 'node:fs';
@@ -21,7 +21,7 @@ const KEY = process.env.ADDIN_KEY || `${HOME}/.office-addin-dev-certs/localhost.
 const BACKEND_HOST = process.env.BACKEND_HOST || '127.0.0.1';
 const BACKEND_PORT = Number(process.env.BACKEND_PORT || 8000);
 const PORT = Number(process.env.ADDIN_PORT || 3000);
-const PROXY = ['/v1', '/api', '/healthz'];
+const PROXY = ['/api', '/healthz', '/manifest.xml'];
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
   '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json',
   '.ico': 'image/x-icon', '.map': 'application/json' };

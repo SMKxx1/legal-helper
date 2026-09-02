@@ -1,6 +1,6 @@
-/* Amperesand NDA Review — Word task-pane add-in.
- * Reads the open document, sends it to the engine /v1 API, renders the review,
- * and applies the provider-neutral redline_plan as Word tracked changes + comments.
+/* Legal Helper — Word task-pane add-in.
+ * Reads the open document, sends it to the API, renders the review, and applies
+ * the provider-neutral redline_plan as Word tracked changes + comments.
  */
 "use strict";
 
@@ -18,7 +18,7 @@ let initialized = false; // set once Office.onReady wiring succeeds
 let applyAllQueue = Promise.resolve(); // serializes apply operations against the doc
 // Deep mode fans out per-clause findings + whole-doc recall + ensemble verify +
 // Opus cross-clause/tiebreak, so it legitimately runs for several minutes on a
-// full NDA. Quick mode is a single fast pass. Timeouts are per-mode.
+// full document. Quick mode is a single fast pass. Timeouts are per-mode.
 const REVIEW_TIMEOUT_MS = { quick: 180000, deep: 600000 };
 
 // RAG tier → pill text + plain-language label shown in the summary panel.
@@ -28,31 +28,24 @@ const RAG = {
   green: { cls: "green", pill: "GREEN", label: "Low risk" },
 };
 
-// Engine origin + key resolution order:
+// API origin + key resolution order:
 //   1. a user override saved in this browser (Settings pane),
-//   2. window.AMP_CONFIG from the server-injected config.js (on-prem zero-config deploy),
-//   3. the origin the add-in was served from (the same server hosts the engine),
-//   4. local-dev fallback.
-const AMP = (typeof window !== "undefined" && window.AMP_CONFIG) || {};
+//   2. the origin the add-in was served from (the same server hosts the API),
+//   3. local-dev fallback.
 const servedOrigin =
   typeof location !== "undefined" && /^https?:/.test(location.origin) ? location.origin : "";
 const cfg = {
   get apiBase() {
-    return (
-      localStorage.getItem("amp.apiBase") ||
-      AMP.apiBase ||
-      servedOrigin ||
-      "https://localhost:8000"
-    ).trim();
+    return (localStorage.getItem("lh.apiBase") || servedOrigin || "https://localhost:8000").trim();
   },
   get apiKey() {
-    return (localStorage.getItem("amp.apiKey") || AMP.apiKey || "").trim();
+    return (localStorage.getItem("lh.apiKey") || "").trim();
   },
   get mode() {
-    return localStorage.getItem("amp.mode") || "deep";
+    return localStorage.getItem("lh.mode") || "deep";
   },
   get scope() {
-    return localStorage.getItem("amp.scope") === "redlines" ? "redlines" : "whole";
+    return localStorage.getItem("lh.scope") === "redlines" ? "redlines" : "whole";
   },
 };
 
@@ -86,20 +79,6 @@ if (typeof Office !== "undefined")
         "findings",
         "review-footer",
         "meta",
-        // mode switch + tokenize mode
-        "mode-review",
-        "mode-tokenize",
-        "review-section",
-        "tokenize-section",
-        "tok-status",
-        "tok-palette",
-        "tok-scan-btn",
-        "tok-scan",
-        "tok-save-btn",
-        "tok-jurisdiction",
-        "tok-counterparty",
-        "tok-mutuality",
-        "tok-variant",
       ].forEach((id) => {
         els[id] = document.getElementById(id);
       });
@@ -108,7 +87,7 @@ if (typeof Office !== "undefined")
       els["api-key"].value = cfg.apiKey;
 
       // Review-depth toggle — "Deep review" on = deep, off = quick. Persists immediately, keeping the
-      // cfg.mode contract (localStorage "amp.mode") unchanged so the rest of the flow is untouched.
+      // cfg.mode contract (localStorage "lh.mode") unchanged so the rest of the flow is untouched.
       const setDeepUI = (deep) => {
         els["depth-toggle"].classList.toggle("is-on", deep);
         els["depth-toggle"].setAttribute("aria-checked", deep ? "true" : "false");
@@ -117,7 +96,7 @@ if (typeof Office !== "undefined")
       setDeepUI(cfg.mode !== "quick"); // default: deep on
       els["depth-toggle"].onclick = () => {
         const deep = cfg.mode === "quick"; // flip the persisted choice
-        localStorage.setItem("amp.mode", deep ? "deep" : "quick");
+        localStorage.setItem("lh.mode", deep ? "deep" : "quick");
         setDeepUI(deep);
         setStatus(
           deep
@@ -140,7 +119,7 @@ if (typeof Office !== "undefined")
       };
       const selectScope = (scope) => {
         if (cfg.scope === scope) return;
-        localStorage.setItem("amp.scope", scope);
+        localStorage.setItem("lh.scope", scope);
         setScopeUI(scope);
         resetForScopeChange(); // whole vs redlines are different analyses — drop any cached review
         if (scope === "redlines") {
@@ -159,15 +138,14 @@ if (typeof Office !== "undefined")
         els["settings-toggle"].setAttribute("aria-expanded", closed ? "false" : "true");
       };
       els["save-settings"].onclick = () => {
-        localStorage.setItem("amp.apiBase", els["api-base"].value);
-        localStorage.setItem("amp.apiKey", els["api-key"].value);
+        localStorage.setItem("lh.apiBase", els["api-base"].value);
+        localStorage.setItem("lh.apiKey", els["api-key"].value);
         els.settings.classList.add("hidden");
         els["settings-toggle"].setAttribute("aria-expanded", "false");
         setStatus("Settings saved.");
       };
       els["review-btn"].onclick = () => runReview(); // uses the current depth-toggle choice
       els["apply-all-btn"].onclick = applyAll;
-      initTokenize(); // wire the mode switch + the Tokenize-template flow
       setStatus("Ready — pick a depth and review the open document.");
       initialized = true;
     } catch (e) {
@@ -298,7 +276,7 @@ async function runReview(modeArg) {
       setStatus(`Reviewing against the playbook… ${mode} mode, ${s}s elapsed (${tip})`);
     }, 1000);
     const fd = new FormData();
-    fd.append("file", new Blob([bytes], { type: DOCX_MIME }), "nda.docx");
+    fd.append("file", new Blob([bytes], { type: DOCX_MIME }), "document.docx");
     fd.append("mode", mode);
     fd.append("scope", cfg.scope);
     fd.append("source_channel", "word");
@@ -1758,385 +1736,6 @@ function markFindingError(f) {
   }
 }
 
-/* ============================================================================
- * TOKENIZE MODE — turn selected document text into {{tokens}} IN Word (exact by
- * construction: the document IS the document), scan for existing tokens, and save
- * the open .docx as a template-library DRAFT.
- *
- * The pure helpers below (token-list parse, {{…}} scan, confirmation formatter,
- * combo→form-field map, draft-version parse) carry no network/Office.js/DOM and are
- * unit-tested in test/tokenize.test.js. The Word.run / fetch / DOM functions after
- * them can only be exercised live inside Word.
- * ========================================================================== */
-
-/* ---- pure helpers (unit-tested) ---- */
-
-// A {{token_name}} placeholder — same snake/alnum shape the backend generator fills
-// (backend regex: \{\{\s*([A-Za-z0-9_]+)\s*\}\}). Used by the document scan.
-function scanTokens(text) {
-  const s = String(text == null ? "" : text);
-  const re = /\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g;
-  const seen = new Set();
-  const out = [];
-  let m;
-  while ((m = re.exec(s)) !== null) {
-    const name = m[1];
-    if (!seen.has(name)) {
-      seen.add(name);
-      out.push(name);
-    }
-  }
-  return out;
-}
-
-// Coerce a token's placeholder to the exact {{name}} form the document should carry: keep an
-// already-braced placeholder, else brace the bare placeholder (or the token name) — stripping any
-// stray/partial braces first so "{{x}}", "x", " x " and "{x" all normalize to "{{x}}".
-function normalizePlaceholder(placeholder, name) {
-  const p = String(placeholder == null ? "" : placeholder).trim();
-  if (/^\{\{.+\}\}$/.test(p)) return p;
-  const bare = (p || String(name == null ? "" : name)).replace(/[{}]/g, "").trim();
-  return "{{" + bare + "}}";
-}
-
-// Parse the /v1/tokens response into the palette shape [{name,label,help,placeholder,party,data_type}].
-// Tolerant of the exact envelope (a bare array, {tokens:[…]}, or {items:[…]}) and of a token that
-// carries only `name` (label falls back to name; placeholder is built as {{name}} when absent) so
-// the palette renders whatever the registry serializes.
-function parseTokenList(body) {
-  const arr = Array.isArray(body)
-    ? body
-    : body && Array.isArray(body.tokens)
-      ? body.tokens
-      : body && Array.isArray(body.items)
-        ? body.items
-        : [];
-  const out = [];
-  for (const t of arr) {
-    if (!t || typeof t !== "object") continue;
-    const name = String(t.name == null ? "" : t.name).trim();
-    if (!name) continue;
-    out.push({
-      name,
-      label: String(t.label == null ? "" : t.label).trim() || name,
-      help: String((t.help_text != null ? t.help_text : t.help) || "").trim(),
-      placeholder: normalizePlaceholder(t.placeholder, name),
-      party: String(t.party == null ? "" : t.party).trim(),
-      data_type: String(t.data_type == null ? "" : t.data_type).trim(),
-    });
-  }
-  return out;
-}
-
-// Split scanned token names into known/unknown against the registry names. Accepts the known set as
-// an Array or a Set; returns [{name, known}] preserving scan order so the UI can flag the unknowns.
-function classifyScanned(scanned, knownNames) {
-  const list = knownNames instanceof Set ? Array.from(knownNames) : knownNames || [];
-  const known = new Set(list.map((n) => String(n)));
-  return (scanned || []).map((name) => ({ name: String(name), known: known.has(String(name)) }));
-}
-
-// The one-line confirmation after a replace: Replaced ‘Acme Corp’ with {{counterparty_name}}.
-// Collapses whitespace/newlines in the selected text and truncates a long selection so the toast
-// stays on one line.
-function formatReplaceMsg(oldText, placeholder) {
-  const clean = String(oldText == null ? "" : oldText)
-    .replace(/\s+/g, " ")
-    .trim();
-  const MAX = 60;
-  const shown = clean.length > MAX ? clean.slice(0, MAX - 1).replace(/\s+$/, "") + "…" : clean;
-  return "Replaced ‘" + shown + "’ with " + String(placeholder == null ? "" : placeholder);
-}
-
-// The controlled vocab the "Send to template library" form maps to, keyed by a normalized
-// (lowercased, separators stripped) form of the user's choice → the canonical code the engine wants.
-const DRAFT_VOCAB = {
-  jurisdiction: { us: "US", sg: "SG" },
-  counterparty_type: {
-    company: "Company",
-    serviceprovider: "ServiceProvider",
-    individual: "Individual",
-  },
-  mutuality: { notapplicable: "NotApplicable", mutual: "Mutual", unilateral: "Unilateral" },
-  variant: { tokenised: "tokenised", tokenized: "tokenised", empty: "empty" },
-};
-const DRAFT_LABEL = {
-  jurisdiction: "jurisdiction",
-  counterparty_type: "counterparty type",
-  mutuality: "mutuality",
-  variant: "variant",
-};
-
-// Map the four form combos → the exact multipart field names the /v1/support_task/template-draft
-// endpoint expects (jurisdiction, counterparty_type, mutuality, variant), mirroring generate-nda.
-// Normalizes case/separators so "Service Provider", "service_provider", "sp"-free canonical values
-// all resolve; throws a friendly Error naming the field on an unrecognized choice.
-function buildDraftFields(sel) {
-  const s = sel || {};
-  const norm = (v) =>
-    String(v == null ? "" : v)
-      .trim()
-      .toLowerCase()
-      .replace(/[\s_\-/]/g, "");
-  const pick = (key, raw) => {
-    const val = DRAFT_VOCAB[key][norm(raw)];
-    if (!val) throw new Error("Choose a valid " + DRAFT_LABEL[key] + ".");
-    return val;
-  };
-  return {
-    jurisdiction: pick("jurisdiction", s.jurisdiction),
-    counterparty_type: pick("counterparty_type", s.counterparty),
-    mutuality: pick("mutuality", s.mutuality),
-    variant: pick("variant", s.variant),
-  };
-}
-
-// Pull the draft version number out of the template-draft response, tolerant of the exact envelope
-// (version_no, a numeric version, or a nested version/draft/template_version object). Returns a
-// positive integer or null (the caller then shows a generic "Saved as a template draft").
-function parseDraftVersion(body) {
-  if (!body || typeof body !== "object") return null;
-  const candidates = [
-    body.version_no,
-    body.version,
-    body.draft && body.draft.version_no,
-    body.version && body.version.version_no,
-    body.template_version && body.template_version.version_no,
-  ];
-  for (const c of candidates) {
-    const n = Number(c);
-    if (Number.isFinite(n) && n > 0) return Math.round(n);
-  }
-  return null;
-}
-
-/* ---- browser / Office.js wiring (live-only) ---- */
-
-let tokPalette = []; // the registry tokens currently rendered as the palette
-let paletteLoaded = false; // whether /v1/tokens has been fetched successfully at least once
-
-// The names known to the registry (Set) — used to flag scanned tokens not in the registry.
-function paletteNames() {
-  return new Set(tokPalette.map((t) => t.name));
-}
-
-// Tokenize-mode toast — its own status line (the review flow's #status lives in the hidden section).
-function tokToast(msg, isError) {
-  const el = els["tok-status"];
-  if (!el) return;
-  el.textContent = msg || "";
-  el.classList.toggle("error", !!isError);
-}
-
-// A network failure vs any other error, as friendly text (mirrors the review flow's messaging).
-function tokErrMessage(e) {
-  if (
-    e instanceof TypeError ||
-    (e && /Failed to fetch|NetworkError|Load failed/i.test(e.message || ""))
-  )
-    return "Could not reach the engine at " + cfg.apiBase + " — check it is running and reachable.";
-  return (e && e.message) || String(e);
-}
-
-function initTokenize() {
-  els["mode-review"].addEventListener("click", () => setMode("review"));
-  els["mode-tokenize"].addEventListener("click", () => setMode("tokenize"));
-  // Event delegation (CSP-clean): one listener resolves whichever palette chip was clicked.
-  els["tok-palette"].addEventListener("click", (e) => {
-    const chip = e.target && e.target.closest ? e.target.closest(".tok-chip") : null;
-    if (chip) insertToken(chip.dataset.placeholder, chip.dataset.label);
-  });
-  els["tok-scan-btn"].addEventListener("click", scanDocument);
-  els["tok-save-btn"].addEventListener("click", sendToLibrary);
-}
-
-// Show exactly one of the two mode sections. On first entry to Tokenize, fetch the palette.
-function setMode(mode) {
-  const tok = mode === "tokenize";
-  els["review-section"].classList.toggle("hidden", tok);
-  els["tokenize-section"].classList.toggle("hidden", !tok);
-  els["mode-review"].classList.toggle("is-on", !tok);
-  els["mode-review"].setAttribute("aria-pressed", tok ? "false" : "true");
-  els["mode-tokenize"].classList.toggle("is-on", tok);
-  els["mode-tokenize"].setAttribute("aria-pressed", tok ? "true" : "false");
-  if (tok && !paletteLoaded) loadPalette();
-}
-
-// GET /v1/tokens (X-API-Key) → render the palette. A failed load leaves paletteLoaded false so the
-// next switch into Tokenize retries.
-async function loadPalette() {
-  const el = els["tok-palette"];
-  el.innerHTML = `<div class="tok-empty">Loading tokens…</div>`;
-  try {
-    const headers = {};
-    if (cfg.apiKey) headers["X-API-Key"] = cfg.apiKey;
-    const base = cfg.apiBase.replace(/\/$/, "");
-    const resp = await fetch(base + "/v1/tokens", { headers });
-    const body = parseJsonSafe(await resp.text());
-    if (!resp.ok)
-      throw new Error((body && body.error && body.error.message) || "HTTP " + resp.status);
-    renderPalette(parseTokenList(body));
-  } catch (e) {
-    paletteLoaded = false;
-    el.innerHTML = `<div class="tok-empty error">${esc(tokErrMessage(e))}</div>`;
-  }
-}
-
-function renderPalette(tokens) {
-  tokPalette = tokens;
-  paletteLoaded = true;
-  const el = els["tok-palette"];
-  if (!tokens.length) {
-    el.innerHTML = `<div class="tok-empty">No tokens are defined in the registry yet.</div>`;
-    return;
-  }
-  el.innerHTML = tokens
-    .map(
-      (t) =>
-        `<button type="button" class="tok-chip" data-placeholder="${esc(t.placeholder)}" data-label="${esc(t.label)}">
-           <span class="tok-chip-label">${esc(t.label)}</span>` +
-        (t.help ? `<span class="tok-chip-help">${esc(t.help)}</span>` : "") +
-        `<span class="tok-chip-ph">${esc(t.placeholder)}</span>
-         </button>`,
-    )
-    .join("");
-}
-
-// CORE: replace the LIVE selection with the token's {{placeholder}} — Word preserves the run's
-// formatting, so the document stays pixel-exact. Refuses an empty selection with a nudge.
-async function insertToken(placeholder, label) {
-  if (typeof Word === "undefined") {
-    tokToast("Tokenizing requires Microsoft Word.", true);
-    return;
-  }
-  if (!placeholder) return;
-  try {
-    await Word.run(async (ctx) => {
-      const sel = ctx.document.getSelection();
-      sel.load("text");
-      await ctx.sync();
-      const chosen = sel.text;
-      if (!chosen || !chosen.trim()) {
-        tokToast("Select the text to replace in the document first, then click a token.", true);
-        return;
-      }
-      sel.insertText(placeholder, Word.InsertLocation.replace);
-      await ctx.sync();
-      tokToast(formatReplaceMsg(chosen, placeholder));
-    });
-  } catch (e) {
-    tokToast("Couldn’t insert the token: " + ((e && e.message) || e), true);
-  }
-}
-
-// Scan the whole body for {{tokens}} and list the distinct ones, flagging any not in the registry.
-// Ensures the palette is loaded first so the known-set is populated (else everything reads unknown).
-async function scanDocument() {
-  if (typeof Word === "undefined") {
-    tokToast("Scanning requires Microsoft Word.", true);
-    return;
-  }
-  if (!paletteLoaded) await loadPalette();
-  const btn = els["tok-scan-btn"];
-  btn.disabled = true;
-  try {
-    await Word.run(async (ctx) => {
-      const body = ctx.document.body;
-      body.load("text");
-      await ctx.sync();
-      const rows = classifyScanned(scanTokens(body.text), paletteNames());
-      renderScanResults(rows);
-      const unknown = rows.filter((r) => !r.known).length;
-      tokToast(
-        rows.length
-          ? `Found ${rows.length} token${rows.length === 1 ? "" : "s"}${
-              unknown ? ` — ${unknown} not in the registry` : " — all in the registry"
-            }.`
-          : "No {{tokens}} found in this document.",
-      );
-    });
-  } catch (e) {
-    tokToast("Scan failed: " + ((e && e.message) || e), true);
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-function renderScanResults(rows) {
-  const el = els["tok-scan"];
-  if (!rows.length) {
-    el.innerHTML = `<div class="tok-empty">No {{tokens}} found in this document.</div>`;
-    return;
-  }
-  el.innerHTML = rows
-    .map(
-      (r) =>
-        `<div class="tok-scan-row ${r.known ? "known" : "unknown"}">
-           <span class="tok-scan-name">{{${esc(r.name)}}}</span>
-           <span class="tok-tag">${r.known ? "in registry" : "not in registry"}</span>
-         </div>`,
-    )
-    .join("");
-}
-
-// Read the four selects into the shape buildDraftFields consumes.
-function readDraftSelections() {
-  return {
-    jurisdiction: els["tok-jurisdiction"].value,
-    counterparty: els["tok-counterparty"].value,
-    mutuality: els["tok-mutuality"].value,
-    variant: els["tok-variant"].value,
-  };
-}
-
-// Read the WHOLE open .docx (the existing getFileAsync path) → POST multipart to the template-draft
-// endpoint (X-API-Key) → confirm the saved draft version. Errors surface as the friendly toast.
-async function sendToLibrary() {
-  let fields;
-  try {
-    fields = buildDraftFields(readDraftSelections());
-  } catch (e) {
-    tokToast((e && e.message) || "Choose valid template options.", true);
-    return;
-  }
-  const btn = els["tok-save-btn"];
-  const prev = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = "Saving…";
-  tokToast("Reading document…");
-  try {
-    const bytes = await getDocBytes();
-    const fd = new FormData();
-    fd.append("file", new Blob([bytes], { type: DOCX_MIME }), "template.docx");
-    fd.append("jurisdiction", fields.jurisdiction);
-    fd.append("counterparty_type", fields.counterparty_type);
-    fd.append("mutuality", fields.mutuality);
-    fd.append("variant", fields.variant);
-    const headers = {};
-    if (cfg.apiKey) headers["X-API-Key"] = cfg.apiKey;
-    const base = cfg.apiBase.replace(/\/$/, "");
-    const resp = await fetch(base + "/v1/support_task/template-draft", {
-      method: "POST",
-      headers,
-      body: fd,
-    });
-    const body = parseJsonSafe(await resp.text());
-    if (!resp.ok)
-      throw new Error((body && body.error && body.error.message) || "HTTP " + resp.status);
-    const n = parseDraftVersion(body);
-    tokToast(
-      n != null
-        ? `Saved as draft v${n} — an admin can publish it in the studio.`
-        : "Saved as a template draft — an admin can publish it in the studio.",
-    );
-  } catch (e) {
-    tokToast(tokErrMessage(e), true);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = prev;
-  }
-}
-
 // Node-only export of the pure redline/diff helpers for unit testing. Browsers have no `module`,
 // so this is a no-op in the add-in (the functions stay plain globals there).
 if (typeof module !== "undefined" && module.exports) {
@@ -2156,13 +1755,5 @@ if (typeof module !== "undefined" && module.exports) {
     parseJsonSafe,
     nextPollDelayMs,
     jobOutcome,
-    // tokenize mode (pure token-list/scan/format/mapping helpers)
-    scanTokens,
-    normalizePlaceholder,
-    parseTokenList,
-    classifyScanned,
-    formatReplaceMsg,
-    buildDraftFields,
-    parseDraftVersion,
   };
 }

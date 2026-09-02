@@ -67,10 +67,9 @@ from app.ai.gateway import (
     TerminalProviderError,
     Usage,
 )
-from app.pricing import cost_for
 from app.telemetry import get_logger
 
-log = get_logger("nda.ai.openrouter")
+log = get_logger("legal_helper.ai.openrouter")
 
 #: Neutral effort -> OpenRouter's normalized ``reasoning.effort`` (low|medium|high). There is no
 #: "max" on this knob, so both neutral extremes clamp inward — "max" runs as "high" through
@@ -527,9 +526,9 @@ class OpenRouterAdapter:
         fallback estimate would under-bill writes — flagged for P1 live verification).
 
         ``usage.cost`` (credits == USD) is authoritative when present; for BYOK responses the
-        provider's own bill arrives in ``cost_details.upstream_inference_cost`` and is added. Only
-        when OpenRouter reports no cost at all does the local table estimate one (namespaced ids
-        resolve via the pricing namespace strip)."""
+        provider's own bill arrives in ``cost_details.upstream_inference_cost`` and is added. If
+        OpenRouter ever reports no cost at all, record 0 and log a warning rather than estimate one
+        locally (there is no local pricing table in this engine)."""
         pt = int(u.get("prompt_tokens") or 0)
         ct = int(u.get("completion_tokens") or 0)
         ptd = u.get("prompt_tokens_details") or {}
@@ -542,18 +541,12 @@ class OpenRouterAdapter:
         input_tokens = max(0, pt - cache_read - cache_write)
         cost = u.get("cost")
         upstream = (u.get("cost_details") or {}).get("upstream_inference_cost")
-        cost_usd: float | None
+        cost_usd: float
         if cost is not None or upstream is not None:
             cost_usd = round(float(cost or 0.0) + float(upstream or 0.0), 6)
         else:
-            cost_usd = cost_for(
-                self.model_id,
-                input_tokens,
-                ct,
-                cache_read_tokens=cache_read,
-                cache_write_tokens=cache_write,
-                cache_write_ttl=self.cache_ttl,
-            )
+            cost_usd = 0.0
+            log.warning("openrouter.usage_missing_cost", model=self.model_id)
         return Usage(
             input_tokens=input_tokens,
             output_tokens=ct,
