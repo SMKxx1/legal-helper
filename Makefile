@@ -32,8 +32,9 @@ type: $(PY)  ## Static type check
 
 check: lint type test  ## Full gate: lint + type + test
 
-seed: $(PY)  ## Seed synthetic demo users (+ reviews from Phase 3 on) into the local DB
-	cd $(BACKEND) && .venv/bin/python -m app.seed_demo
+seed: $(PY)  ## Seed demo history onto an existing account: make seed USER_ACCOUNT=jane.tan
+	@test -n "$(USER_ACCOUNT)" || (echo 'usage: make seed USER_ACCOUNT=<username>  (register the account from the add-in first)'; exit 1)
+	cd $(BACKEND) && .venv/bin/python -m app.seed_demo --for $(USER_ACCOUNT)
 
 smoke: $(PY)  ## Hit a running deployment's public endpoints and report pass/fail
 	cd $(BACKEND) && .venv/bin/python scripts/smoke.py $(ARGS)

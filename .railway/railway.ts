@@ -57,8 +57,6 @@ app.environmentVariables = {
   S3_REGION: `${{${bucket.id}.REGION}}`,
 
   // Demo seed data (set to "true" for demo deployment to seed synthetic users)
-  SEED_DEMO_DATA: process.env.SEED_DEMO_DATA || "false",
-  DEMO_USER_PASSWORD: process.env.DEMO_USER_PASSWORD || "LegalHelper2026!",
 
   // Add-in manifest GUID (generate a new one via Python or uuidgen)
   ADDIN_ID: process.env.ADDIN_ID || "7b3f9a42-1c6e-4d2a-9f51-0a1b2c3d4e5f",

@@ -81,13 +81,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # The idempotent fresh-DB/test safety net; it never ALTERs an existing table. Alembic is the
         # sole source of truth for schema changes (deploy runs `python -m app.db_migrate` first).
         init_db()
-        # Demo deployments only (plan §4.6): SEED_DEMO_DATA=true seeds synthetic users + review
-        # history. seed_demo itself is the idempotency guard (skips work already done), so this is
-        # safe to call on every boot, not just a first one.
-        if settings.seed_demo_data:
-            from .seed_demo import run as seed_demo_run
-
-            seed_demo_run()
         # Runs each capability's health probe (today: `database` checks APP_SECRET_KEY in prod) so
         # /healthz reflects real boot-time health, not just config presence.
         await registry.run_probes()

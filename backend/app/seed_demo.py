@@ -1,18 +1,20 @@
-"""Synthetic demo data (plan §4.6): the admin account, ~140 reviews, and their ``llm_calls`` rows.
+"""Synthetic demo history (plan §4.6): ~140 reviews and their ``llm_calls`` rows.
 
-Run with ``python -m app.seed_demo`` (``--reset`` truncates ``reviews``/``llm_calls`` and reseeds;
-also runs at boot when ``SEED_DEMO_DATA=true`` **and** the ``users`` table is empty — see
-``main.create_app``'s lifespan). Fixed RNG seed (``random.Random(2026)``) so every deployment's
-synthetic history looks the same.
+**No accounts are seeded.** Everyone — including whoever demos this — registers from the add-in
+with their own OpenRouter key, so a pre-made account nobody can run a review with would be dead
+weight (and its password would have to live in this public repo).
 
-Idempotent by construction, not by row-level dedup: :func:`seed_users` skips any username already
-present, and :func:`seed_reviews` is a no-op whenever the ``reviews`` table is already non-empty —
-so running the whole module twice creates nothing new the second time (see
+Seeding history therefore targets an account that already exists:
+
+    python -m app.seed_demo --for jane.tan      # ~140 reviews onto jane.tan
+    python -m app.seed_demo --promote jane.tan  # grant that account the admin role
+    python -m app.seed_demo --prune-users       # delete every non-admin account and its data
+
+Fixed RNG seed (``random.Random(2026)``) so the history looks the same every time.
+
+Idempotent by construction: :func:`seed_reviews` is a no-op whenever the ``reviews`` table is
+already non-empty, so running it twice creates nothing the second time (see
 ``tests/test_seed_demo.py::test_seed_is_idempotent``, the one correctness risk here).
-
-Only the ``admin`` account is seeded (password ``DEMO_USER_PASSWORD``, no OpenRouter key).
-Everyone else registers themselves from the add-in via ``POST /api/auth/register``, supplying
-their own key — so the seeded demo history all belongs to admin.
 
 Every seeded review reuses the REAL persistence path (``reviews_repo.create_review`` /
 ``complete_review`` / ``fail_review``) with a hand-built ``ReviewResult`` standing in for what the
@@ -36,39 +38,8 @@ from sqlalchemy.orm import Session as DbSession
 from .agents.orchestrator import CoverageReport, Finding, ReviewResult
 from .ai.ledger import LlmCallRecord
 from .api import reviews_repo
-from .auth.security import hash_password
-from .config import settings
 from .db import SessionLocal, init_db
 from .models import LlmCall, Review, Session, User
-
-#: (username, display_name, role). Only the admin account is seeded: every other user creates
-#: their own account from the add-in and supplies their own OpenRouter key, so pre-made accounts
-#: would just be clutter nobody can actually run a review with.
-DEMO_USERS: list[tuple[str, str, str]] = [
-    ("admin", "Admin", "admin"),
-]
-
-
-def seed_users(db: DbSession) -> int:
-    """Insert any :data:`DEMO_USERS` row not already present. Returns the number created."""
-    password_hash = hash_password(settings.demo_user_password)
-    existing = {row[0] for row in db.execute(select(User.username)).all()}
-    created = 0
-    for username, display_name, role in DEMO_USERS:
-        if username in existing:
-            continue
-        db.add(
-            User(
-                username=username,
-                display_name=display_name,
-                role=role,
-                password_hash=password_hash,
-            )
-        )
-        created += 1
-    db.commit()
-    return created
-
 
 # --------------------------------------------------------------------------------------------- #
 # Synthetic review history (plan §4.6)
@@ -81,13 +52,6 @@ _SGT = timezone(
     timedelta(hours=8)
 )  # Singapore time — no zoneinfo needed for a fixed offset
 _PLAYBOOK_VERSION = "lh-1"
-
-#: username -> relative activity weight. Only `admin` is seeded now (everyone else registers
-#: themselves from the add-in), so the demo history all belongs to admin; the mapping is kept so
-#: reseeding a roster of accounts would spread the history realistically again.
-_ACTIVITY_WEIGHTS: dict[str, float] = {
-    "admin": 1.0,
-}
 
 #: (doc_type key, weight) — plan §4.6: "NDA 35%, MSA 20%, SaaS subscription 15%, employment 10%,
 #: lease 10%, DPA 10%".
@@ -683,28 +647,25 @@ def _backdate(
 
 
 def seed_reviews(
-    db: DbSession, rng: random.Random, now_utc: datetime | None = None
+    db: DbSession,
+    rng: random.Random,
+    username: str,
+    now_utc: datetime | None = None,
 ) -> int:
-    """Seed ~140 reviews + their ``llm_calls`` (plan §4.6). A no-op (returns 0) whenever the
-    ``reviews`` table is already non-empty — this table-emptiness check is the whole idempotency
-    story: a second run of ``seed_demo`` creates nothing further."""
+    """Seed ~140 reviews + their ``llm_calls`` onto ``username`` (plan §4.6).
+
+    Returns 0 (a no-op) when ``reviews`` is already non-empty or the account does not exist —
+    that table-emptiness check is the whole idempotency story."""
     if (db.execute(select(func.count(Review.id))).scalar() or 0) > 0:
         return 0
 
     now_utc = now_utc or datetime.now(UTC)
-    users = {
-        u.username: u
-        for u in db.execute(
-            select(User).where(User.username.in_([row[0] for row in DEMO_USERS]))
-        ).scalars()
-    }
-    activity_weights = [
-        (users[uname], weight)
-        for uname, weight in _ACTIVITY_WEIGHTS.items()
-        if uname in users
-    ]
-    if not activity_weights:
+    user = db.execute(
+        select(User).where(User.username == username)
+    ).scalar_one_or_none()
+    if user is None:
         return 0
+    activity_weights = [(user, 1.0)]
 
     created = 0
     for i in range(_REVIEW_COUNT):
@@ -764,35 +725,86 @@ def prune_non_admin_users(db: DbSession) -> tuple[int, int]:
     return (len(ids), reviews)
 
 
-def run(*, reset: bool = False, prune_users: bool = False) -> None:
+def promote_to_admin(db: DbSession, username: str) -> bool:
+    """Grant an existing account the admin role. Returns False if there is no such account.
+
+    Sign-up always creates a plain user, so this is the only way to get an admin — which keeps
+    "become an admin" off the public API surface entirely.
+    """
+    user = db.execute(
+        select(User).where(User.username == username)
+    ).scalar_one_or_none()
+    if user is None:
+        return False
+    user.role = "admin"
+    db.commit()
+    return True
+
+
+def run(
+    *,
+    seed_for: str | None = None,
+    promote: str | None = None,
+    reset: bool = False,
+    prune_users: bool = False,
+) -> None:
     init_db()
     with SessionLocal() as db:
         if prune_users:
             users, reviews = prune_non_admin_users(db)
             print(f"seed_demo: pruned {users} non-admin user(s), {reviews} review(s)")
+        if promote:
+            ok = promote_to_admin(db, promote)
+            print(
+                f"seed_demo: {promote} is now an admin"
+                if ok
+                else f"seed_demo: no account named {promote!r}"
+            )
         if reset:
             db.execute(delete(LlmCall))
             db.execute(delete(Review))
             db.commit()
-        created_users = seed_users(db)
-        print(
-            f"seed_demo: {created_users} user(s) created, "
-            f"{len(DEMO_USERS) - created_users} already present"
-        )
-        rng = random.Random(_RNG_SEED)
-        created_reviews = seed_reviews(db, rng)
-        if created_reviews:
-            print(f"seed_demo: {created_reviews} review(s) + llm_calls seeded")
-        else:
-            print("seed_demo: reviews already seeded, skipped")
+        if seed_for:
+            created = seed_reviews(db, random.Random(_RNG_SEED), seed_for)
+            if created:
+                print(
+                    f"seed_demo: {created} review(s) + llm_calls seeded for {seed_for}"
+                )
+            elif (
+                db.execute(
+                    select(User).where(User.username == seed_for)
+                ).scalar_one_or_none()
+                is None
+            ):
+                print(
+                    f"seed_demo: no account named {seed_for!r} — register it from the add-in first"
+                )
+            else:
+                print("seed_demo: reviews already seeded, skipped")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Seed Legal Helper demo data.")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Legal Helper demo data. No accounts are seeded — register one from the add-in, "
+            "then point --for at it."
+        )
+    )
+    parser.add_argument(
+        "--for",
+        dest="seed_for",
+        metavar="USERNAME",
+        help="Seed ~140 synthetic reviews onto this existing account.",
+    )
+    parser.add_argument(
+        "--promote",
+        metavar="USERNAME",
+        help="Grant this existing account the admin role.",
+    )
     parser.add_argument(
         "--reset",
         action="store_true",
-        help="Truncate reviews/llm_calls and reseed them.",
+        help="Truncate reviews/llm_calls before seeding.",
     )
     parser.add_argument(
         "--prune-users",
@@ -800,4 +812,12 @@ if __name__ == "__main__":
         help="Delete every non-admin account and the reviews/calls it owns.",
     )
     args = parser.parse_args()
-    run(reset=args.reset, prune_users=args.prune_users)
+    if not any([args.seed_for, args.promote, args.reset, args.prune_users]):
+        parser.print_help()
+        raise SystemExit(0)
+    run(
+        seed_for=args.seed_for,
+        promote=args.promote,
+        reset=args.reset,
+        prune_users=args.prune_users,
+    )

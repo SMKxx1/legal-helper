@@ -103,13 +103,6 @@ class Settings(BaseSettings):
     s3_secret_access_key: str = ""
     s3_region: str = "auto"
 
-    # ---- Demo seed data ------------------------------------------------------
-    # SEED_DEMO_DATA=true on the demo deployment: seed synthetic users/reviews when the users table
-    # is empty (idempotent). DEMO_USER_PASSWORD is the one shared password every seeded demo user
-    # logs in with (seeded users carry no OpenRouter key — only the presenter's real account does).
-    seed_demo_data: bool = False
-    demo_user_password: str = "LegalHelper2026!"
-
     # ---- Sign-up -------------------------------------------------------------
     # Students create their own account from the add-in, supplying their own OpenRouter key.
     # Set SIGNUP_ENABLED=false to close registration once the workshop is over, leaving the

@@ -13,7 +13,6 @@ Railway services**: the app (FastAPI in one container), Postgres, and a storage 
 
 ```bash
 make install                  # create backend/.venv and install pinned deps
-make seed                     # the admin account (+ demo review history)
 make run                      # uvicorn on :8000, autoreload
 ```
 
@@ -23,11 +22,20 @@ curl -s localhost:8000/api/status  # version, capabilities, totals
 open http://localhost:8000/        # landing page + manifest download
 ```
 
-**Accounts are self-service.** The only seeded account is `admin` (password `DEMO_USER_PASSWORD`,
-default **`LegalHelper2026!`**). Everyone else taps **Create one** on the add-in's sign-in screen
-and registers with a username, a password and their own OpenRouter key — the server validates that
-key against OpenRouter before creating the account, so nobody ends up with an account that cannot
-actually run a review. Set `SIGNUP_ENABLED=false` to close registration after a workshop.
+**Accounts are self-service — none are seeded.** A fresh deployment has an empty users table.
+Tap **Create one** on the add-in's sign-in screen and register with a username, a password and your
+own OpenRouter key; the server validates that key against OpenRouter before creating the account,
+so nobody ends up with an account that cannot actually run a review.
+
+No account ships with the code, so there is no password in this repo to leak and nothing to rotate
+after a workshop. Set `SIGNUP_ENABLED=false` to close registration once everyone has signed up.
+
+Optional, once you have an account — give it demo history, or the admin role:
+
+```bash
+make seed USER_ACCOUNT=jane.tan                          # ~140 synthetic reviews
+cd backend && .venv/bin/python -m app.seed_demo --promote jane.tan   # grant admin
+```
 
 The app boots with **zero environment variables** — SQLite locally, bucket capability simply
 reports `disabled`. Reviews additionally need a per-user OpenRouter key (see below).
@@ -62,23 +70,24 @@ encrypted with. Rotating it invalidates every stored key.
 
 ### Deployment topology
 
-```
-┌────────────────────────────┐        HTTPS (public)          ┌──────────────────────────────────────┐
-│  Word (desktop / Mac / web)│ ─────────────────────────────▶ │ Railway service: legal-helper        │
-│  task pane: taskpane.html  │  Authorization: Bearer <token> │ FastAPI + uvicorn, one container     │
-│  Office.js reads/edits doc │ ◀───────────────────────────── │ /addin/*  /manifest.xml  /api/*  /   │
-└────────────────────────────┘                                │                                      │
-                                                              │  agents/  ─── OpenRouter (ZDR only)  │
-                                                              │  (user's own key, decrypted per call)│
-                                                              └───────┬───────────────────┬──────────┘
-                                                        private net   │                   │  S3 API (public endpoint,
-                                                 ${{Postgres.DATABASE_URL}}               │  bucket credentials)
-                                                                      ▼                   ▼
-                                                        ┌──────────────────┐   ┌──────────────────────┐
-                                                        │ Railway Postgres │   │ Railway bucket       │
-                                                        │ users, sessions, │   │ "documents"          │
-                                                        │ reviews, llm_calls│  │ users/<id>/reviews/… │
-                                                        └──────────────────┘   └──────────────────────┘
+```mermaid
+flowchart LR
+    subgraph word["Word — desktop, Mac or web"]
+        pane["Task pane<br/>taskpane.html + Office.js<br/>reads and edits the open document"]
+    end
+
+    subgraph rw["Railway project: legal-helper"]
+        app["legal-helper<br/>FastAPI + uvicorn, one container<br/>/addin/* · /manifest.xml · /api/* · /"]
+        pg[("Postgres<br/>users · sessions<br/>reviews · llm_calls")]
+        bucket[("documents bucket<br/>users/ID/reviews/file.docx")]
+    end
+
+    router["OpenRouter<br/>ZDR routes only"]
+
+    pane -- "HTTPS · Authorization: Bearer TOKEN" --> app
+    app -- "private network<br/>DATABASE_URL" --> pg
+    app -- "S3 API · presigned GET, 15 min" --> bucket
+    app -- "the user's own key,<br/>decrypted for one review" --> router
 ```
 
 ### Code architecture
@@ -126,24 +135,38 @@ Cross-cutting  config.py                ~25 settings, every one with a safe defa
                capabilities.py          database | bucket | openrouter_zdr_list → enabled/disabled/unhealthy
                crypto.py                Fernet encrypt/decrypt for the users' OpenRouter keys
                telemetry/logging.py     structlog + correlation-id middleware
-               seed_demo.py             idempotent admin account + demo history (fixed RNG seed)
+               seed_demo.py             optional demo history for an existing account (fixed RNG seed)
 ```
 
 ### Request flow — a quick review
 
-```
-POST /api/reviews (multipart: file, mode=quick, our_side)
-  auth/deps.get_current_user        bearer token → User, else 401
-  routes_reviews._preflight         409 no key · 402 over monthly budget · 429 at capacity
-  ingestion/docx.extract_text       422 empty_document · 413 over MAX_DOC_CHARS
-  storage/bucket.put_document       fail-soft: a bucket error only adds a warning
-  crypto.decrypt(user key)          in memory, for this request only
-  asyncio.to_thread(run_review)     keeps the event loop free
-      classifier                    → doc_type, parties, summary
-      reviewer ‖ coverage           ThreadPoolExecutor; ctx_copy carries the ledger into the threads
-      merge (pure code, no LLM)     span verification → drop severity "none" → dedupe → risk tier → adherence score
-  reviews_repo.complete_review      review row + one llm_calls row per gateway call
-  200 + the full result JSON
+```mermaid
+sequenceDiagram
+    participant Pane as Task pane
+    participant API as routes_reviews
+    participant Orch as agents/orchestrator
+    participant OR as OpenRouter
+    participant DB as Postgres
+
+    Pane->>API: POST /api/reviews (file, mode=quick, our_side)
+    API->>API: get_current_user — bearer token, else 401
+    API->>API: preflight — 409 no key · 402 over budget · 429 at capacity
+    API->>API: extract_text — 422 empty · 413 too long
+    API-)DB: put_document to bucket (fail-soft: a failure is only a warning)
+    API->>API: decrypt the user's key (in memory, this request only)
+    API->>Orch: run_review in a worker thread
+    Orch->>OR: classifier
+    OR-->>Orch: doc_type, parties, summary
+    par reviewer
+        Orch->>OR: reviewer
+    and coverage
+        Orch->>OR: coverage
+    end
+    OR-->>Orch: findings + checklist
+    Orch->>Orch: merge in plain code — verify spans, dedupe, risk tier, score
+    Orch-->>API: ReviewResult
+    API->>DB: review row + one llm_calls row per gateway call
+    API-->>Pane: 200 + the full result JSON
 ```
 
 Deep mode returns `202 {id, status:"queued"}` with a `Location` header instead, runs the same
@@ -208,9 +231,8 @@ that matter in production:
 | `APP_SECRET_KEY` | **Required in prod.** Fernet key encrypting user OpenRouter keys. |
 | `ADDIN_ID` | Stable GUID in the generated manifest — one per deployment. |
 | `S3_*` (5 vars) | Railway: `${{documents.ENDPOINT}}` etc. All blank → bucket capability `disabled`, reviews still work. |
-| `SEED_DEMO_DATA` | `true` seeds the admin account + demo history when the users table is empty. |
-| `DEMO_USER_PASSWORD` | Password for the seeded `admin` account. |
 | `MAX_MONTHLY_COST_USD` | Per-user spend cap; a review beyond it is refused with `402`. |
+| `SIGNUP_ENABLED` | `false` closes registration; existing accounts keep working. |
 | `MODEL_CLASSIFIER` / `MODEL_QUICK` / `MODEL_DEEP` | Defaults; each user may override from the ZDR list. |
 
 ---

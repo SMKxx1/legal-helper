@@ -80,17 +80,16 @@ def test_field_defaults() -> None:
     assert s.s3_access_key_id == ""
     assert s.s3_secret_access_key == ""
     assert s.s3_region == "auto"
-    assert s.seed_demo_data is False
-    assert s.demo_user_password == "LegalHelper2026!"
+    assert s.signup_enabled is True
 
 
 def test_env_override_of_fields(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("REVIEW_CONCURRENCY", "8")
-    monkeypatch.setenv("SEED_DEMO_DATA", "true")
+    monkeypatch.setenv("SIGNUP_ENABLED", "false")
     monkeypatch.setenv("MAX_MONTHLY_COST_USD", "12.5")
     s = Settings(_env_file=None)
     assert s.review_concurrency == 8
-    assert s.seed_demo_data is True
+    assert s.signup_enabled is False
     assert s.max_monthly_cost_usd == 12.5
 
 
