@@ -1,38 +1,64 @@
 # Legal Helper
 
-A Microsoft Word task-pane add-in plus a small FastAPI service that reviews a `.docx` against a legal playbook using a team of LLM agents over OpenRouter (Zero-Data-Retention routes only), and returns findings the add-in applies as tracked changes + comments.
+A Microsoft Word task-pane add-in plus a small FastAPI service that reviews the open `.docx`
+against an editable legal playbook using a team of LLM agents over OpenRouter — **Zero-Data-Retention
+routes only** — and returns findings the add-in applies as tracked changes and comments.
 
-Built as a teaching demo for the "Deployment 2" workshop: the codebase demonstrates **core deployment patterns** (persistent service, managed database, object storage, authentication, secrets, cost metering, schema migrations, CI/CD) in a single, explainable system.
+Built as a teaching demo for the "Deployment 2" workshop. It deploys as **one project, three
+Railway services**: the app (FastAPI in one container), Postgres, and a storage bucket.
 
 ---
 
 ## Quick start (local)
 
 ```bash
-# Install backend deps and start the service
-make install
-make run
-
-# In another terminal, verify the service
-curl -s localhost:8000/healthz       # -> {"status":"ok"}
-curl -s localhost:8000/              # -> landing page with capabilities
-
-# Optional: start the add-in dev server (requires Node 18+)
-cd word-addin
-npm install
-npm run dev-server               # serves taskpane.html on https://localhost:3000
-# In Word: Insert Add-in → Upload Manifest → word-addin/manifest.dev.xml
+make install                  # create backend/.venv and install pinned deps
+make seed                     # 8 synthetic users + ~140 reviews of history
+make run                      # uvicorn on :8000, autoreload
 ```
 
-From the add-in, sign in as:
-- **Username:** `alice.tan`
-- **Password:** (empty for dev; generated on first `make run`)
+```bash
+curl -s localhost:8000/healthz     # -> {"status":"ok"}
+curl -s localhost:8000/api/status  # version, capabilities, totals
+open http://localhost:8000/        # landing page + manifest download
+```
 
-See [`word-addin/README.md`](word-addin/README.md) for sideloading on Mac, Windows, and web.
+Sign in from the add-in (or via `POST /api/auth/login`) as `alice.tan`, `ben.lim`, `chloe.ng`,
+`dev.raj`, `emma.koh`, `farid.hassan`, `grace.lee`, or `admin`. The password for every seeded user
+is `DEMO_USER_PASSWORD` (default **`LegalHelper2026!`**).
+
+The app boots with **zero environment variables** — SQLite locally, bucket capability simply
+reports `disabled`. Reviews additionally need a per-user OpenRouter key (see below).
+
+Add-in dev server (Node 18+):
+
+```bash
+cd word-addin && npm install && node dev-server.mjs   # https://localhost:3000, proxies /api
+```
+
+Then sideload `word-addin/manifest.dev.xml`. See [`word-addin/README.md`](word-addin/README.md)
+for sideloading on Mac, Windows, and the web.
+
+---
+
+## Where the OpenRouter key lives
+
+**It is not an environment variable.** There is deliberately no `OPENROUTER_API_KEY` setting.
+
+Each user pastes their own key into the add-in once. The server validates it against
+`GET https://openrouter.ai/api/v1/key`, encrypts it with Fernet (`APP_SECRET_KEY`) and stores the
+ciphertext on the user's row (`users.openrouter_key_enc`). It is decrypted in memory for the
+duration of one review and never returned by any endpoint — the API exposes only the last 4
+characters and the key's label. That is what makes per-user spend metering trustworthy.
+
+The one secret that *is* an env var is `APP_SECRET_KEY`, the Fernet key those user keys are
+encrypted with. Rotating it invalidates every stored key.
 
 ---
 
 ## Architecture
+
+### Deployment topology
 
 ```
 ┌────────────────────────────┐        HTTPS (public)          ┌──────────────────────────────────────┐
@@ -53,180 +79,214 @@ See [`word-addin/README.md`](word-addin/README.md) for sideloading on Mac, Windo
                                                         └──────────────────┘   └──────────────────────┘
 ```
 
-**Trust boundaries:**
+### Code architecture
 
-1. **Word ↔ app** (public): bearer token per user; every `/api/*` route except `login` and `status` answers 401 without it.
-2. **App ↔ Postgres** (private network): `DATABASE_URL` reference variable, never a public URL.
-3. **App ↔ bucket** (S3 API over the public endpoint, credentials from bucket variable refs): objects are private; the browser only ever sees a short-lived presigned URL.
-4. **App ↔ OpenRouter** (public): the **user's** key, stored Fernet-encrypted, decrypted in-memory for the duration of one review; request carries the ZDR policy; response `usage.cost` is written to `llm_calls`.
+The backend is four layers plus cross-cutting concerns. Dependencies point downward only —
+**nothing in `agents/`, `ai/`, or `engine/` imports FastAPI**, so the whole review pipeline runs
+(and is tested) without an HTTP server.
+
+```
+HTTP edge      main.py                  create_app(): settings → logging → capabilities → routers → /healthz → default-deny 404
+               api/routes_auth.py       POST /api/auth/login · logout          (per-IP throttle, argon2, dummy_verify)
+               api/routes_me.py         GET /api/me · the user's OpenRouter key · model preferences · ZDR model list
+               api/routes_reviews.py    POST /api/reviews (quick sync / deep async) · get · list · delete · document
+               api/routes_usage.py      GET /api/me/usage · GET /api/admin/usage
+               api/routes_pages.py      GET / (landing) · GET /api/status
+               api/routes_addin.py      /addin/* static bundle · GET /manifest.xml (rewritten for the request origin)
+               api/errors.py            the single {"error": {...}} envelope
+               auth/deps.py             get_current_user (bearer) · require_admin — deny by default
+        │
+        ▼
+Domain         agents/orchestrator.py   run_review(): classifier → reviewer ‖ coverage → deterministic merge
+               agents/classifier.py     doc_type, parties, governing law, one-line summary
+               agents/reviewer.py       findings; "triage" style for quick, "edit" style (drafts language) for deep
+               agents/coverage.py       closed checklist of the playbook's required positions (deep only)
+               agents/base.py           an Agent = name + prompt + JSON schema + effort + max_tokens
+               agents/schemas.py        the response_format schemas, asserted portable at import
+               engine/spans.py          verbatim-substring gate → span_faithful (the safety check before any edit)
+               playbook/loader.py       load + validate legal_helper_playbook.json, render the prompt block
+               ingestion/docx.py        .docx → text (python-docx only)
+        │
+        ▼
+Model access   ai/gateway.py            retry ladder, circuit breaker, fence_document
+               ai/openrouter.py         the ZDR-pinned adapter; takes the API key PER CALL, not from settings
+               ai/ledger.py             contextvar ledger: one LlmCall record per gateway call
+               ai/zdr.py                fetch + 10-min cache of /api/v1/endpoints/zdr; validates model choices
+        │
+        ▼
+Persistence    models.py                users · sessions · reviews · llm_calls (SQLAlchemy)
+               api/reviews_repo.py      create/complete/fail a review, list for a user, usage aggregates, stale-job sweep
+               db.py · db_migrate.py    engine/session, SQLite pragmas, migrate-then-serve helper
+               storage/bucket.py        boto3: put, presigned GET, delete, retention cap
+               alembic/                 one baseline migration; create_all == head is asserted by a test
+
+Cross-cutting  config.py                ~25 settings, every one with a safe default
+               capabilities.py          database | bucket | openrouter_zdr_list → enabled/disabled/unhealthy
+               crypto.py                Fernet encrypt/decrypt for the users' OpenRouter keys
+               telemetry/logging.py     structlog + correlation-id middleware
+               seed_demo.py             idempotent synthetic users + history (fixed RNG seed)
+```
+
+### Request flow — a quick review
+
+```
+POST /api/reviews (multipart: file, mode=quick, our_side)
+  auth/deps.get_current_user        bearer token → User, else 401
+  routes_reviews._preflight         409 no key · 402 over monthly budget · 429 at capacity
+  ingestion/docx.extract_text       422 empty_document · 413 over MAX_DOC_CHARS
+  storage/bucket.put_document       fail-soft: a bucket error only adds a warning
+  crypto.decrypt(user key)          in memory, for this request only
+  asyncio.to_thread(run_review)     keeps the event loop free
+      classifier                    → doc_type, parties, summary
+      reviewer ‖ coverage           ThreadPoolExecutor; ctx_copy carries the ledger into the threads
+      merge (pure code, no LLM)     span verification → drop severity "none" → dedupe → risk tier → adherence score
+  reviews_repo.complete_review      review row + one llm_calls row per gateway call
+  200 + the full result JSON
+```
+
+Deep mode returns `202 {id, status:"queued"}` with a `Location` header instead, runs the same
+`run_review` in a background task under a semaphore, and the add-in polls `GET /api/reviews/{id}`.
+On boot, any `queued`/`running` row older than 15 minutes is failed — crash recovery in a few lines.
+
+**Fail-soft vs fail-closed, on purpose:** a classifier failure proceeds with `doc_type="unknown"`;
+a coverage failure returns `coverage: null` plus a warning; a **reviewer** failure fails the whole
+review with the mapped provider code (`no_zdr_route`, `rate_limited`, `insufficient_credits`,
+`timeout`). The document is the product — a partial review is worse than an honest error.
+
+### Data model
+
+| Table | Holds |
+|---|---|
+| `users` | username, argon2id hash, role, Fernet-encrypted OpenRouter key + last4/label, model preferences |
+| `sessions` | `sha256(token)` only, 12-hour TTL, `last_seen_at` |
+| `reviews` | one row per review: mode, status, doc type, risk tier, adherence score, tokens, cost, `result_json`, bucket object key |
+| `llm_calls` | one row per LLM call: agent, model, provider, tokens, `cost_usd`, latency, ok/error |
+
+Indexed on `llm_calls(user_id, created_at)` and `reviews(user_id, created_at)` — the Usage tab is
+a handful of aggregates over those two tables.
 
 ---
 
-## Deployment
+## API surface
 
-See [`docs/DEPLOY_RAILWAY.md`](docs/DEPLOY_RAILWAY.md) for the complete Railway click-path (15–20 minutes).
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| `GET` | `/` | — | Landing page: totals, capability states, manifest download |
+| `GET` | `/healthz` | — | Liveness (Railway healthcheck) |
+| `GET` | `/api/status` | — | Version, uptime, region, capabilities, totals (no secrets) |
+| `GET` | `/manifest.xml` | — | Office manifest, rewritten for the requesting origin |
+| `GET` | `/addin/*` | — | The task-pane static bundle |
+| `POST` | `/api/auth/login` | — | `{token, expires_at, user}`; 429 after 20 failures / 5 min / IP |
+| `POST` | `/api/auth/logout` | bearer | Deletes the session row |
+| `GET` | `/api/me` | bearer | Profile, `has_key`, `key_last4`, model preferences |
+| `PUT`/`DELETE` | `/api/me/openrouter-key` | bearer | Save (validated + encrypted) or remove the user's key |
+| `PUT` | `/api/me/models` | bearer | Quick/deep model choice; 422 if not on the ZDR list |
+| `GET` | `/api/models/zdr` | bearer | ZDR-only models that support structured output |
+| `POST` | `/api/reviews` | bearer | Quick → `200` + result; deep → `202` + `Location` |
+| `GET` | `/api/reviews` | bearer | Recent reviews for the caller |
+| `GET` | `/api/reviews/{id}` | bearer | Poll/fetch one review (owner only) |
+| `GET` | `/api/reviews/{id}/document` | bearer | `302` → 15-minute presigned URL (owner only) |
+| `DELETE` | `/api/reviews/{id}` | bearer | Delete the object, then the row |
+| `GET` | `/api/me/usage` | bearer | Totals, this month, by mode, by model, budget remaining |
+| `GET` | `/api/admin/usage` | admin | Per-user and per-day totals; 403 for role `user` |
 
-TL;DR: fork this repo, create a Railway project with Postgres + bucket, connect GitHub, set environment variables, generate a domain, and sideload `/manifest.xml` in Word.
+Full request/response examples: [`docs/API.md`](docs/API.md).
 
 ---
 
-## Requirements (testable proof)
+## Configuration
 
-| Quality | Requirement | Proof |
+Every setting has a safe default; see [`backend/.env.example`](backend/.env.example). The ones
+that matter in production:
+
+| Variable | Notes |
+|---|---|
+| `DATABASE_URL` | Railway: `${{Postgres.DATABASE_URL}}`. Defaults to local SQLite. |
+| `APP_SECRET_KEY` | **Required in prod.** Fernet key encrypting user OpenRouter keys. |
+| `ADDIN_ID` | Stable GUID in the generated manifest — one per deployment. |
+| `S3_*` (5 vars) | Railway: `${{documents.ENDPOINT}}` etc. All blank → bucket capability `disabled`, reviews still work. |
+| `SEED_DEMO_DATA` | `true` seeds users + history when the users table is empty. |
+| `DEMO_USER_PASSWORD` | Password shared by the synthetic users. |
+| `MAX_MONTHLY_COST_USD` | Per-user spend cap; a review beyond it is refused with `402`. |
+| `MODEL_CLASSIFIER` / `MODEL_QUICK` / `MODEL_DEEP` | Defaults; each user may override from the ZDR list. |
+
+---
+
+## Requirements and their proof
+
+| Quality | Requirement | Proof today |
 |---|---|---|
-| Reliability | `/healthz` returns 200 on 10/10 checks after deploy; data survives a redeploy | Railway healthcheck; smoke test; redeploy demo |
-| Security | Every `/api/*` route except login and status returns 401 without a valid bearer token | Integration tests; smoke test |
-| Secrets | No key in git; user keys encrypted at rest; API never returns more than the last 4 characters | `test_me.py`; grep in CI |
-| Privacy | Every OpenRouter request carries `provider.zdr=true` and `allow_fallbacks=false`; no route → error | `test_zdr_fail_closed.py` |
-| Performance | p95 of `GET /api/me/usage` < 500 ms with 10,000 `llm_calls` rows | Smoke test; indexes on `user_id, created_at` |
-| Cost | A user's reviews are refused once monthly spend exceeds `MAX_MONTHLY_COST_USD` (default $5); at most `MAX_DOCS_PER_USER` objects per user | `test_budget.py`; `test_retention.py` |
-| Recovery | Reviews left `running` by a crash are marked failed within 15 minutes of restart | `test_stale_jobs.py` |
-| Limits | Uploads over 10 MB or documents over 120,000 characters are rejected with 413 | `test_reviews_limits.py` |
+| Reliability | `/healthz` 200; data survives a redeploy | Railway healthcheck; `backend/scripts/smoke.py` |
+| Security | Every `/api/*` route except login and status is 401 without a valid bearer token | `tests/test_auth_required.py` |
+| Secrets | Keys encrypted at rest; the API never returns more than the last 4 characters | `tests/test_me_key.py`, `tests/test_crypto.py` |
+| Privacy | Every OpenRouter request carries `provider.zdr=true`, `allow_fallbacks=false`; no route → error | `test_zdr_fail_closed` in `tests/test_openrouter_adapter.py` |
+| Safety | A finding whose `span` is not verbatim in the document is flagged unfaithful, never applied | `tests/test_orchestrator.py`, `tests/test_spans.py` |
+| Access control | Another user cannot download your document | `tests/test_review_document.py` |
+| Performance | p95 of `GET /api/me/usage` < 500 ms | `backend/scripts/smoke.py` (measured, not unit-tested) |
+| Cost | Reviews refused past `MAX_MONTHLY_COST_USD`; at most `MAX_DOCS_PER_USER` objects retained | **Implemented** (`routes_reviews._preflight`, `storage/bucket.enforce_retention`) — *no behavioural test yet* |
+| Recovery | Reviews left `running` by a crash are failed on the next boot | **Implemented** (`reviews_repo.fail_stale_jobs`, called from the `main.py` lifespan) — *no behavioural test yet* |
+| Limits | Oversized uploads / documents rejected (`413`), empty ones `422` | **Implemented** (`routes_reviews`) — *no behavioural test yet* |
+
+The last three rows are honest gaps: the behaviour exists and is exercised by hand, but nothing in
+CI would catch a regression. They are the obvious first tests to add.
 
 ---
 
-## Documentation
+## Repo layout
 
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — answers the four architecture questions; request flow for quick vs deep; agent pipeline; what a worker service would change
-- [`docs/API.md`](docs/API.md) — every endpoint: method, path, auth, request, success + failure examples
-- [`docs/DEPLOY_RAILWAY.md`](docs/DEPLOY_RAILWAY.md) — deployment click-path with screenshots and troubleshooting
-- [`docs/WORKSHOP_SLIDES.md`](docs/WORKSHOP_SLIDES.md) — slide mapping and concepts the code demonstrates
-- [`word-addin/README.md`](word-addin/README.md) — dev server, sideloading, how the clause locator and tracked changes work, troubleshooting
-
----
-
-## Repo structure
-
-**Backend:**
-- `backend/app/main.py` — FastAPI app factory, health check, 404 default-deny
-- `backend/app/config.py` — settings from env (pydantic-settings)
-- `backend/app/capabilities.py` — database, bucket, and ZDR model list health
-- `backend/app/db.py`, `db_migrate.py` — SQLAlchemy, Alembic migration helpers
-- `backend/app/auth/` — argon2 password hashing, bearer sessions, `get_current_user`
-- `backend/app/crypto.py` — Fernet encryption/decryption for user OpenRouter keys
-- `backend/app/api/` — routers: auth, user profile, reviews, usage stats, landing page, add-in manifest
-- `backend/app/agents/` — LLM agent orchestration: classifier, reviewer, coverage checker, span verifier, deterministic merge
-- `backend/app/ai/` — OpenRouter adapter (ZDR-pinned), gateway, usage ledger, model list cache
-- `backend/app/ingestion/docx.py` — `.docx` parsing
-- `backend/app/storage/bucket.py` — S3-compatible object store (presigned URLs, retention)
-- `backend/app/seed_demo.py` — idempotent seeding of synthetic users + history
-- `backend/app/telemetry/` — structured logging, correlation IDs
-- `backend/app/models.py` — SQLAlchemy table definitions
-- `backend/alembic/` — database migration scripts
-- `backend/tests/` — pytest suite over an in-process ASGI client
-
-**Add-in:**
-- `word-addin/taskpane.html` — task pane UI (sign in, key settings, review controls, history, usage)
-- `word-addin/taskpane.js` — Office.js integration, clause locator, tracked changes, polling
-- `word-addin/taskpane.css` — styles
-- `word-addin/manifest.dev.xml` — dev manifest (hardcoded localhost URLs)
-- `word-addin/dev-server.mjs` — local dev server (HTTPS, CORS, `/api` proxy to backend)
-- `word-addin/tests/` — unit tests (redline diffing, async transport helpers, no Office.js)
-
-**Data & config:**
-- `playbook/legal_helper_playbook.json` — legal playbook positions (presence, context)
-- `samples/` — synthetic `.docx` files for testing and demos
-- `Dockerfile` — Python 3.13, single-stage production image
-- `.railway/railway.ts` — Railway IaC (reference; manual dashboard steps are primary)
-- `.github/workflows/ci.yml` — CI: `make check` + `npm test` on every push
-- `backend/.env.example` — environment variable template
+```
+backend/app/        the service (see "Code architecture" above)
+backend/tests/      pytest over an in-process ASGI client; no network, no LLM spend
+backend/alembic/    one baseline migration
+backend/scripts/    smoke.py (deployed checks) · gen_samples.py
+word-addin/         build-free task pane: taskpane.html/.js/.css, manifest.dev.xml, dev-server.mjs, test/
+playbook/           legal_helper_playbook.json — the ~12 positions, edited by hand
+samples/            three synthetic .docx used by tests and demos
+Dockerfile          python:3.13-slim, migrate-then-serve
+.railway/railway.ts Railway infrastructure as code (the dashboard remains the primary path)
+.github/workflows/  CI: make check + npm test
+docs/               ARCHITECTURE · API · DEPLOY_RAILWAY · WORKSHOP_SLIDES
+```
 
 ---
 
 ## Development
 
-**Backend:**
 ```bash
-cd backend
-source .venv/bin/activate          # or just `make install`
-make check                         # ruff + mypy + pytest
-python -m pytest -k test_name -v   # run specific test
+make check          # ruff + mypy + pytest (the CI gate)
+make test           # pytest only
+make addin-test     # node --test "test/**/*.test.js"
+make seed           # idempotent demo data
+make smoke          # hit a deployed URL and report pass/fail
 ```
 
-**Add-in:**
-```bash
-cd word-addin
-npm install
-npm test                           # node --test tests/**/*.test.js
-npm run dev-server                 # HTTPS dev server on localhost:3000
-```
+Run one test: `cd backend && .venv/bin/pytest tests/test_orchestrator.py -q`
 
-**Playbook:**
-Edit `playbook/legal_helper_playbook.json` and restart the backend.
-
-**Database migrations:**
-```bash
-cd backend
-alembic upgrade head               # apply pending migrations
-alembic downgrade -1               # roll back one migration
-```
+Migrations: `cd backend && .venv/bin/python -m app.db_migrate` (the container runs this before
+uvicorn). Editing the playbook is just editing `playbook/legal_helper_playbook.json` and
+restarting.
 
 ---
 
-## Testing
+## Deployment
 
-**Unit + integration (backend):**
-```bash
-cd backend
-make check                         # runs pytest over an in-process ASGI client
-```
-
-**Smoke test (deployed):**
-```bash
-python backend/scripts/smoke.py https://<your-domain> alice.tan <password>
-```
-
-**Seed demo data:**
-```bash
-cd backend
-python -m app.seed_demo            # idempotent; safe to run multiple times
-make seed                          # alias
-```
+[`docs/DEPLOY_RAILWAY.md`](docs/DEPLOY_RAILWAY.md) has the full click-path: create the project,
+add Postgres and a bucket, set the variable references, generate a domain, sideload
+`/manifest.xml`, then prove it with `make smoke`.
 
 ---
 
-## Deployment checklist
+## Documentation
 
-Before deploying, ensure:
-
-- [ ] `.env` and `.env.example` are correct (`.env` is in `.gitignore`)
-- [ ] `make check` passes on `main`
-- [ ] `Dockerfile` builds: `docker build -t legal-helper .`
-- [ ] A Railway account is ready and linked to your GitHub fork
-- [ ] You have an OpenRouter API key for live reviews
-
-See [`docs/DEPLOY_RAILWAY.md`](docs/DEPLOY_RAILWAY.md) for the step-by-step.
-
----
-
-## Concepts taught
-
-This codebase is a working example of:
-
-- **Authentication:** password hashing (argon2id), bearer tokens, session expiry, `get_current_user` dependency injection
-- **Secrets at rest:** Fernet encryption, `APP_SECRET_KEY`, last-4 display
-- **API design:** one error envelope, default-deny 404, request/response schemas, status codes
-- **Schema migrations:** Alembic baseline, migrate-then-serve in the start command
-- **Async work:** in-process `asyncio` task, semaphore, polling from the client
-- **Metering:** every LLM call is a row; OpenRouter's `usage.cost`; per-user monthly budget
-- **Agent orchestration:** pattern classifier → specialists in parallel → deterministic merge
-- **Data privacy:** Zero Data Retention (ZDR) per-request policy, model allowlist, fail-closed
-- **Capability registry:** enabled/disabled/unhealthy; graceful degradation (bucket is optional)
-- **Object storage:** presigned URLs, retention caps, per-environment buckets
-- **Observability:** structured JSON logs, correlation IDs, `/api/status`
-- **CI/CD:** GitHub Actions, auto-deploy to Railway
-- **Infrastructure as code:** `.railway.ts` mirrors the dashboard canvas
-
----
-
-## Spec
-
-The complete plan — architecture, decisions, data model, and the phase-by-phase build — lives in [`LEGAL_HELPER_PLAN.md`](LEGAL_HELPER_PLAN.md). Start there for rationale and dependencies between phases.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — the four architecture questions, request flows, trust boundaries, what a worker service would change
+- [`docs/API.md`](docs/API.md) — every endpoint with success and failure examples
+- [`docs/DEPLOY_RAILWAY.md`](docs/DEPLOY_RAILWAY.md) — Railway click-path and troubleshooting
+- [`docs/WORKSHOP_SLIDES.md`](docs/WORKSHOP_SLIDES.md) — slide ↔ code mapping
+- [`word-addin/README.md`](word-addin/README.md) — sideloading, the clause locator, tracked changes
+- [`LEGAL_HELPER_PLAN.md`](LEGAL_HELPER_PLAN.md) — the original build plan and the rationale behind each decision
 
 ---
 
 ## License
 
-Teaching demo, no license specified. Use freely for educational purposes.
-
-
+[MIT](LICENSE).

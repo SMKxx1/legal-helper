@@ -23,6 +23,37 @@ def test_addin_static_taskpane_js_served(client):
     assert "runReview" in resp.text
 
 
+def test_manifest_is_served_and_points_at_the_request_origin(client):
+    """The manifest must advertise THIS deployment's origin, never the dev localhost origin.
+
+    Office fetches taskpane.html from whatever the manifest says; a manifest still pointing at
+    https://localhost:3000 installs cleanly and then shows a blank pane on every machine but the
+    developer's.
+    """
+    resp = client.get("/manifest.xml")
+    assert resp.status_code == 200, resp.text
+    assert "xml" in resp.headers["content-type"]
+    body = resp.text
+    assert "https://localhost:3000" not in body
+    assert "testserver/addin/taskpane.html" in body
+    assert "testserver/addin/assets/icon-32.png" in body
+
+
+def test_manifest_uses_configured_addin_id_and_four_part_version():
+    """<Id> is the key Office installs against, so it comes from config, not the dev template."""
+    from app.api.routes_addin import build_manifest
+
+    template = (
+        '<Id>dev-guid</Id><Version>1.0.0.0</Version><a href="https://localhost:3000/"/>'
+    )
+    out = build_manifest(
+        template, "https://x.example", addin_id="real-guid", version="0.1.0"
+    )
+    assert "<Id>real-guid</Id>" in out
+    assert "<Version>0.1.0.0</Version>" in out
+    assert "https://x.example/" in out
+
+
 def test_non_addin_path_still_default_deny_404(client):
     resp = client.get("/definitely/not/a/route")
     assert resp.status_code == 404
