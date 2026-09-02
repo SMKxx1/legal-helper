@@ -98,7 +98,12 @@ def _store_document(
     caller's own commit) and returns warnings to fold into the review result: empty when the
     bucket is disabled (an expected, silent state) OR the upload succeeded; ``["document_not_stored"]``
     only on an actual upload failure while the bucket IS configured (fail-soft — the review still
-    succeeds)."""
+    succeeds).
+
+    BLOCKING — callers MUST run this off the event loop (``asyncio.to_thread``). boto3 is
+    synchronous and ``enforce_retention`` adds more S3 round-trips on top of the upload; called
+    inline this froze the entire service in production, so no request was served at all — not
+    ``/healthz``, and not the landing page people download the manifest from."""
     if not bucket.enabled():
         return []
     key = bucket.put_document(user.id, review.id, filename, data)
@@ -170,7 +175,9 @@ async def create_review(
                 status="running",
             )
             db.commit()
-            doc_warnings = _store_document(db, user, review, filename, data)
+            doc_warnings = await asyncio.to_thread(
+                _store_document, db, user, review, filename, data
+            )
             started = time.perf_counter()
             try:
                 result = await asyncio.to_thread(
@@ -201,7 +208,9 @@ async def create_review(
         status="queued",
     )
     db.commit()
-    doc_warnings = _store_document(db, user, review, filename, data)
+    doc_warnings = await asyncio.to_thread(
+        _store_document, db, user, review, filename, data
+    )
     review_id = review.id
     asyncio.create_task(
         _run_deep_review(review_id, text, our_side, api_key, models, doc_warnings)

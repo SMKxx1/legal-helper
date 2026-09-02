@@ -59,7 +59,15 @@ def _client():
         aws_access_key_id=settings.s3_access_key_id,
         aws_secret_access_key=settings.s3_secret_access_key,
         region_name=settings.s3_region or "auto",
-        config=Config(signature_version="s3v4"),
+        # Bounded on purpose. botocore's defaults (60s connect, 60s read, legacy retry mode) let a
+        # single stalled bucket call hold a request for minutes; a review is worth far less than
+        # the archive copy of its document, and this path is already fail-soft.
+        config=Config(
+            signature_version="s3v4",
+            connect_timeout=5,
+            read_timeout=20,
+            retries={"max_attempts": 2, "mode": "standard"},
+        ),
     )
 
 

@@ -21,11 +21,87 @@ you for three values:
 | `APP_SECRET_KEY` | Any long random string. It encrypts the OpenRouter keys your users save — pick one and keep it, because changing it later makes stored keys unreadable. |
 | `ADDIN_ID` | Any GUID, e.g. from `uuidgen`. It identifies the add-in to Word; one per deployment. |
 
-Then pick a bucket region and hit **Deploy**. When it goes green: open your new domain, download
-`/manifest.xml`, sideload it in Word, and create your account from the task pane. No account,
-password, or key ships with this repo — the first person to register is the first user.
+Then pick a bucket region and hit **Deploy**. When it goes green, open your new domain and follow
+the sideloading guide below. No account, password, or key ships with this repo — the first person
+to register is the first user.
 
 There is no `OPENROUTER_API_KEY` to set. Each user brings their own key (see below).
+
+---
+
+## Sideload the add-in in Word
+
+Word doesn't install this from a store — each person points Word at a **manifest**, a small XML
+file describing where the task pane lives. Everything else follows from that.
+
+**1. Get the manifest.** Open your deployment's landing page and click **Download manifest**, or
+go straight to `https://<your-domain>/manifest.xml`.
+
+The manifest is generated per request from the domain you asked for, so the file you download
+already points at your deployment — there is nothing to edit. Download it from the deployment you
+actually want to use; a manifest from a different domain will open that one's task pane instead.
+
+**2. Load it into Word.** Pick your platform:
+
+<details open>
+<summary><b>Word on the web</b> — quickest, nothing to install</summary>
+
+1. Open any document at [word.new](https://word.new) or in Word online.
+2. **Home** tab (or **Insert**) → **Add-ins** → **More Add-ins**.
+3. Choose the **My Add-ins** tab → **Upload My Add-in** (top right).
+4. **Browse…**, pick the `manifest.xml` you downloaded, then **Upload**.
+
+The pane opens immediately. This is the best route for a workshop — no filesystem access, no
+restart, and it works the same on every machine.
+</details>
+
+<details>
+<summary><b>Word on macOS</b></summary>
+
+Copy the manifest into Word's sideload folder, then restart Word:
+
+```bash
+mkdir -p ~/Library/Containers/com.microsoft.Word/Data/Documents/wef
+cp ~/Downloads/manifest.xml ~/Library/Containers/com.microsoft.Word/Data/Documents/wef/legal-helper-manifest.xml
+```
+
+Quit Word completely (⌘Q — not just the window) and reopen it. **Legal Helper** appears on the
+**Home** tab; click **Review this document** to open the pane.
+
+To remove it later, delete that file and restart Word.
+</details>
+
+<details>
+<summary><b>Word on Windows</b></summary>
+
+Windows loads sideloaded add-ins from a *shared folder catalog*:
+
+1. Make a folder, e.g. `C:\WordAddins`, and put `manifest.xml` in it.
+2. Right-click the folder → **Properties** → **Sharing** → **Share…** → share it with yourself
+   and copy the resulting network path (`\\MACHINE\WordAddins`).
+3. In Word: **File** → **Options** → **Trust Center** → **Trust Center Settings…** →
+   **Trusted Add-in Catalogs**.
+4. Paste the network path into **Catalog Url**, click **Add catalog**, tick **Show in Menu**,
+   then **OK**. Restart Word.
+5. **Insert** → **My Add-ins** → **Shared Folder** tab → select **Legal Helper** → **Add**.
+</details>
+
+**3. Sign in.** The pane asks for a server URL (already filled in with the domain that served it),
+then a username and password. First time on a fresh deployment, tap **Create one** and register
+with your own OpenRouter key — the server validates it before creating the account.
+
+### If the pane doesn't appear
+
+| Symptom | Cause and fix |
+|---|---|
+| Pane opens blank or white | The manifest points at a domain that isn't serving. Open `https://<domain>/healthz` — it should return `{"status":"ok"}`. |
+| "Add-in manifest is not valid" | The file was saved as HTML, not XML — re-download from `/manifest.xml` rather than saving the rendered page. |
+| Nothing on the Home tab (Mac) | Word wasn't fully quit. ⌘Q, then reopen. |
+| Sideload worked before, now gone | Word caches manifests. On Mac, delete `~/Library/Containers/com.microsoft.Word/Data/Library/Caches` and restart. |
+| Sign-in says "could not reach the server" | The server URL in the pane is wrong or the deployment is asleep — check `/healthz` first. |
+
+Doing this against a local dev server instead? Use `word-addin/manifest.dev.xml` and see
+[`word-addin/README.md`](word-addin/README.md).
 
 ---
 
