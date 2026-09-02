@@ -13,7 +13,7 @@ Railway services**: the app (FastAPI in one container), Postgres, and a storage 
 
 ```bash
 make install                  # create backend/.venv and install pinned deps
-make seed                     # 8 synthetic users + ~140 reviews of history
+make seed                     # the admin account (+ demo review history)
 make run                      # uvicorn on :8000, autoreload
 ```
 
@@ -23,9 +23,11 @@ curl -s localhost:8000/api/status  # version, capabilities, totals
 open http://localhost:8000/        # landing page + manifest download
 ```
 
-Sign in from the add-in (or via `POST /api/auth/login`) as `alice.tan`, `ben.lim`, `chloe.ng`,
-`dev.raj`, `emma.koh`, `farid.hassan`, `grace.lee`, or `admin`. The password for every seeded user
-is `DEMO_USER_PASSWORD` (default **`LegalHelper2026!`**).
+**Accounts are self-service.** The only seeded account is `admin` (password `DEMO_USER_PASSWORD`,
+default **`LegalHelper2026!`**). Everyone else taps **Create one** on the add-in's sign-in screen
+and registers with a username, a password and their own OpenRouter key — the server validates that
+key against OpenRouter before creating the account, so nobody ends up with an account that cannot
+actually run a review. Set `SIGNUP_ENABLED=false` to close registration after a workshop.
 
 The app boots with **zero environment variables** — SQLite locally, bucket capability simply
 reports `disabled`. Reviews additionally need a per-user OpenRouter key (see below).
@@ -124,7 +126,7 @@ Cross-cutting  config.py                ~25 settings, every one with a safe defa
                capabilities.py          database | bucket | openrouter_zdr_list → enabled/disabled/unhealthy
                crypto.py                Fernet encrypt/decrypt for the users' OpenRouter keys
                telemetry/logging.py     structlog + correlation-id middleware
-               seed_demo.py             idempotent synthetic users + history (fixed RNG seed)
+               seed_demo.py             idempotent admin account + demo history (fixed RNG seed)
 ```
 
 ### Request flow — a quick review
@@ -177,6 +179,7 @@ a handful of aggregates over those two tables.
 | `GET` | `/manifest.xml` | — | Office manifest, rewritten for the requesting origin |
 | `GET` | `/addin/*` | — | The task-pane static bundle |
 | `POST` | `/api/auth/login` | — | `{token, expires_at, user}`; 429 after 20 failures / 5 min / IP |
+| `POST` | `/api/auth/register` | — | Self-service sign-up with an OpenRouter key; returns the same `{token, user}` and signs straight in. 409 taken · 422 bad key/username/password · 403 when `SIGNUP_ENABLED=false` · 429 past 10/hour/IP |
 | `POST` | `/api/auth/logout` | bearer | Deletes the session row |
 | `GET` | `/api/me` | bearer | Profile, `has_key`, `key_last4`, model preferences |
 | `PUT`/`DELETE` | `/api/me/openrouter-key` | bearer | Save (validated + encrypted) or remove the user's key |
@@ -205,8 +208,8 @@ that matter in production:
 | `APP_SECRET_KEY` | **Required in prod.** Fernet key encrypting user OpenRouter keys. |
 | `ADDIN_ID` | Stable GUID in the generated manifest — one per deployment. |
 | `S3_*` (5 vars) | Railway: `${{documents.ENDPOINT}}` etc. All blank → bucket capability `disabled`, reviews still work. |
-| `SEED_DEMO_DATA` | `true` seeds users + history when the users table is empty. |
-| `DEMO_USER_PASSWORD` | Password shared by the synthetic users. |
+| `SEED_DEMO_DATA` | `true` seeds the admin account + demo history when the users table is empty. |
+| `DEMO_USER_PASSWORD` | Password for the seeded `admin` account. |
 | `MAX_MONTHLY_COST_USD` | Per-user spend cap; a review beyond it is refused with `402`. |
 | `MODEL_CLASSIFIER` / `MODEL_QUICK` / `MODEL_DEEP` | Defaults; each user may override from the ZDR list. |
 

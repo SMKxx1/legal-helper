@@ -75,11 +75,13 @@ class KeyOut(BaseModel):
     limit_remaining: float | None
 
 
-@router.put("/me/openrouter-key", response_model=KeyOut)
-async def save_openrouter_key(
-    body: KeyIn, user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
-) -> KeyOut:
-    api_key = body.api_key.strip()
+async def validate_openrouter_key(api_key: str) -> tuple[str | None, float | None]:
+    """Ask OpenRouter whether this key is real; return ``(label, limit_remaining)``.
+
+    Shared by the settings screen and by sign-up (``routes_auth.register``) so a key is proven
+    to work before it is ever stored — a user should never get an account whose first review
+    fails on a typo'd key. Raises ``422 invalid_openrouter_key`` if OpenRouter rejects it.
+    """
     if not api_key:
         raise EngineError(422, "invalid_openrouter_key", "An API key is required.")
 
@@ -98,11 +100,20 @@ async def save_openrouter_key(
         if isinstance(limit, int | float) and isinstance(usage, int | float)
         else None
     )
+    return (str(label) if label else None), limit_remaining
+
+
+@router.put("/me/openrouter-key", response_model=KeyOut)
+async def save_openrouter_key(
+    body: KeyIn, user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+) -> KeyOut:
+    api_key = body.api_key.strip()
+    label, limit_remaining = await validate_openrouter_key(api_key)
 
     # Plaintext touches memory only for this request — encrypted immediately, never logged.
     user.openrouter_key_enc = crypto.encrypt(api_key)
     user.openrouter_key_last4 = api_key[-4:]
-    user.openrouter_key_label = str(label) if label else None
+    user.openrouter_key_label = label
     db.commit()
     return KeyOut(
         key_last4=user.openrouter_key_last4,

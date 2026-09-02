@@ -1,4 +1,4 @@
-"""Synthetic demo data (plan §4.6): users, ~140 reviews, and their ``llm_calls`` rows.
+"""Synthetic demo data (plan §4.6): the admin account, ~140 reviews, and their ``llm_calls`` rows.
 
 Run with ``python -m app.seed_demo`` (``--reset`` truncates ``reviews``/``llm_calls`` and reseeds;
 also runs at boot when ``SEED_DEMO_DATA=true`` **and** the ``users`` table is empty — see
@@ -10,8 +10,9 @@ present, and :func:`seed_reviews` is a no-op whenever the ``reviews`` table is a
 so running the whole module twice creates nothing new the second time (see
 ``tests/test_seed_demo.py::test_seed_is_idempotent``, the one correctness risk here).
 
-Every seeded user shares one password, ``DEMO_USER_PASSWORD`` — and carries no OpenRouter key.
-Only the presenter's own account gets a real key, entered live in the add-in.
+Only the ``admin`` account is seeded (password ``DEMO_USER_PASSWORD``, no OpenRouter key).
+Everyone else registers themselves from the add-in via ``POST /api/auth/register``, supplying
+their own key — so the seeded demo history all belongs to admin.
 
 Every seeded review reuses the REAL persistence path (``reviews_repo.create_review`` /
 ``complete_review`` / ``fail_review``) with a hand-built ``ReviewResult`` standing in for what the
@@ -38,18 +39,13 @@ from .api import reviews_repo
 from .auth.security import hash_password
 from .config import settings
 from .db import SessionLocal, init_db
-from .models import LlmCall, Review, User
+from .models import LlmCall, Review, Session, User
 
-#: (username, display_name, role) — fixed order/spelling so every deployment looks the same.
+#: (username, display_name, role). Only the admin account is seeded: every other user creates
+#: their own account from the add-in and supplies their own OpenRouter key, so pre-made accounts
+#: would just be clutter nobody can actually run a review with.
 DEMO_USERS: list[tuple[str, str, str]] = [
     ("admin", "Admin", "admin"),
-    ("alice.tan", "Alice Tan", "user"),
-    ("ben.lim", "Ben Lim", "user"),
-    ("chloe.ng", "Chloe Ng", "user"),
-    ("dev.raj", "Dev Raj", "user"),
-    ("emma.koh", "Emma Koh", "user"),
-    ("farid.hassan", "Farid Hassan", "user"),
-    ("grace.lee", "Grace Lee", "user"),
 ]
 
 
@@ -86,17 +82,11 @@ _SGT = timezone(
 )  # Singapore time — no zoneinfo needed for a fixed offset
 _PLAYBOOK_VERSION = "lh-1"
 
-#: username -> relative activity weight. Two heavy (alice.tan, ben.lim), two light
-#: (farid.hassan, grace.lee), the rest moderate — "per-user activity skewed" (plan §4.6).
+#: username -> relative activity weight. Only `admin` is seeded now (everyone else registers
+#: themselves from the add-in), so the demo history all belongs to admin; the mapping is kept so
+#: reseeding a roster of accounts would spread the history realistically again.
 _ACTIVITY_WEIGHTS: dict[str, float] = {
     "admin": 1.0,
-    "alice.tan": 3.0,
-    "ben.lim": 3.0,
-    "chloe.ng": 1.5,
-    "dev.raj": 1.5,
-    "emma.koh": 1.5,
-    "farid.hassan": 0.5,
-    "grace.lee": 0.5,
 }
 
 #: (doc_type key, weight) — plan §4.6: "NDA 35%, MSA 20%, SaaS subscription 15%, employment 10%,
@@ -755,9 +745,31 @@ def seed_reviews(
     return created
 
 
-def run(*, reset: bool = False) -> None:
+def prune_non_admin_users(db: DbSession) -> tuple[int, int]:
+    """Delete every non-admin account and everything it owns. Returns (users, reviews).
+
+    Needed once, on a deployment that was seeded with the old synthetic roster: those accounts
+    have no OpenRouter key and nobody can sign into them meaningfully now that users register
+    themselves. Children go first — the FKs are plain references, not ON DELETE CASCADE.
+    """
+    ids = [r[0] for r in db.execute(select(User.id).where(User.role != "admin")).all()]
+    if not ids:
+        return (0, 0)
+    reviews = len(db.execute(select(Review.id).where(Review.user_id.in_(ids))).all())
+    db.execute(delete(LlmCall).where(LlmCall.user_id.in_(ids)))
+    db.execute(delete(Review).where(Review.user_id.in_(ids)))
+    db.execute(delete(Session).where(Session.user_id.in_(ids)))
+    db.execute(delete(User).where(User.id.in_(ids)))
+    db.commit()
+    return (len(ids), reviews)
+
+
+def run(*, reset: bool = False, prune_users: bool = False) -> None:
     init_db()
     with SessionLocal() as db:
+        if prune_users:
+            users, reviews = prune_non_admin_users(db)
+            print(f"seed_demo: pruned {users} non-admin user(s), {reviews} review(s)")
         if reset:
             db.execute(delete(LlmCall))
             db.execute(delete(Review))
@@ -782,5 +794,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Truncate reviews/llm_calls and reseed them.",
     )
+    parser.add_argument(
+        "--prune-users",
+        action="store_true",
+        help="Delete every non-admin account and the reviews/calls it owns.",
+    )
     args = parser.parse_args()
-    run(reset=args.reset)
+    run(reset=args.reset, prune_users=args.prune_users)

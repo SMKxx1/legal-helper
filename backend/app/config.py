@@ -110,6 +110,12 @@ class Settings(BaseSettings):
     seed_demo_data: bool = False
     demo_user_password: str = "LegalHelper2026!"
 
+    # ---- Sign-up -------------------------------------------------------------
+    # Students create their own account from the add-in, supplying their own OpenRouter key.
+    # Set SIGNUP_ENABLED=false to close registration once the workshop is over, leaving the
+    # already-created accounts working.
+    signup_enabled: bool = True
+
     # ---- Normalization / derivation -------------------------------------
     @field_validator("app_env", mode="before")
     @classmethod

@@ -53,7 +53,43 @@
           <input id="signin-password" type="password" autocomplete="current-password" />
         </label>
         <button id="signin-btn" class="btn-gold">Sign in</button>
+        <p class="status">
+          No account? <a href="#" id="show-signup">Create one</a>
+        </p>
         <p id="signin-status" class="status" role="status" aria-live="polite"></p>
+      </section>
+
+      <!-- SIGN UP — self-service registration. The OpenRouter key is required here: the server
+           validates it against OpenRouter before the account is created, so no one ends up with
+           an account whose first review is guaranteed to fail. -->
+      <section id="signup-screen" class="panel hidden" aria-label="Create an account">
+        <div class="field-label" style="margin-bottom: 10px">Create an account</div>
+        <label class="field">
+          <span class="field-label">Username</span>
+          <input id="signup-username" type="text" autocomplete="username" placeholder="jane.tan" />
+        </label>
+        <label class="field">
+          <span class="field-label">Display name <span class="hint">(optional)</span></span>
+          <input id="signup-display" type="text" autocomplete="name" placeholder="Jane Tan" />
+        </label>
+        <label class="field">
+          <span class="field-label">Password</span>
+          <input id="signup-password" type="password" autocomplete="new-password" />
+        </label>
+        <label class="field">
+          <span class="field-label">OpenRouter API key</span>
+          <input id="signup-key" type="password" placeholder="sk-or-…" autocomplete="off" />
+        </label>
+        <button id="signup-btn" class="btn-gold">Create account</button>
+        <p class="status">
+          <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">Get a key at openrouter.ai/keys</a>
+        </p>
+        <p class="status">
+          Your key is stored encrypted on the server and used only for your own reviews — only the
+          last 4 digits are ever shown.
+        </p>
+        <p class="status"><a href="#" id="show-signin">Back to sign in</a></p>
+        <p id="signup-status" class="status" role="status" aria-live="polite"></p>
       </section>
 
       <!-- ADD KEY — shown once signed in when GET /api/me reports has_key=false. -->

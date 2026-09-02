@@ -82,7 +82,12 @@ async function apiFetch(path, opts, { skipAuthReset } = {}) {
 }
 
 function showScreen(name) {
-  const screens = { signin: els["signin-screen"], addkey: els["addkey-screen"], ready: els["ready-screen"] };
+  const screens = {
+    signin: els["signin-screen"],
+    signup: els["signup-screen"],
+    addkey: els["addkey-screen"],
+    ready: els["ready-screen"],
+  };
   Object.keys(screens).forEach((k) => screens[k] && screens[k].classList.toggle("hidden", k !== name));
   els["settings-toggle"].classList.toggle("hidden", name !== "ready");
   if (name !== "ready") {
@@ -139,6 +144,62 @@ function routeSignedInUser(user) {
     renderSettingsSummary();
     showScreen("ready");
     setStatus("Ready — pick a depth and review the open document.");
+  }
+}
+
+// Self-service registration. The server validates the OpenRouter key against OpenRouter before
+// it creates the account, so a 422 here usually means the key is wrong — not the password.
+async function doSignUp() {
+  const username = els["signup-username"].value.trim();
+  const password = els["signup-password"].value;
+  const apiKey = els["signup-key"].value.trim();
+  const displayName = els["signup-display"].value.trim();
+  if (!username || !password || !apiKey) {
+    setAuthStatus("signup-status", "Username, password and OpenRouter key are all required.", true);
+    return;
+  }
+  els["signup-btn"].disabled = true;
+  setAuthStatus("signup-status", "Checking your key with OpenRouter…");
+  try {
+    const resp = await apiFetch(
+      "/api/auth/register",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username,
+          password,
+          api_key: apiKey,
+          display_name: displayName || undefined,
+        }),
+      },
+      { skipAuthReset: true },
+    );
+    const body = parseJsonSafe(await resp.text());
+    if (!resp.ok) {
+      const code = body && body.error && body.error.code;
+      const msg =
+        code === "username_taken"
+          ? "That username is taken — pick another."
+          : code === "invalid_openrouter_key"
+            ? "OpenRouter rejected that key. Check it at openrouter.ai/keys."
+            : code === "signup_disabled"
+              ? "Sign-up is closed on this server."
+              : code === "too_many_signups"
+                ? "Too many accounts created from here. Try again later."
+                : (body && body.error && body.error.message) || "Could not create the account.";
+      setAuthStatus("signup-status", msg, true);
+      return;
+    }
+    cfg.token = body.token;
+    els["signup-password"].value = "";
+    els["signup-key"].value = "";
+    setAuthStatus("signup-status", "");
+    routeSignedInUser(body.user); // has_key is true, so this lands straight on Ready
+  } catch (e) {
+    setAuthStatus("signup-status", `Could not reach the server: ${e.message}`, true);
+  } finally {
+    els["signup-btn"].disabled = false;
   }
 }
 
@@ -267,6 +328,15 @@ if (typeof Office !== "undefined")
         "signin-password",
         "signin-btn",
         "signin-status",
+        "show-signup",
+        "signup-screen",
+        "signup-username",
+        "signup-display",
+        "signup-password",
+        "signup-key",
+        "signup-btn",
+        "signup-status",
+        "show-signin",
         "addkey-screen",
         "addkey-key",
         "addkey-btn",
@@ -347,6 +417,25 @@ if (typeof Office !== "undefined")
       ["signin-username", "signin-password", "signin-server"].forEach((id) => {
         els[id].addEventListener("keydown", (e) => {
           if (e.key === "Enter") doSignIn();
+        });
+      });
+      els["show-signup"].onclick = (e) => {
+        e.preventDefault();
+        // carry over a server base typed on the sign-in form before switching screens
+        const server = els["signin-server"].value.trim();
+        if (server) cfg.apiBase = server;
+        setAuthStatus("signup-status", "");
+        showScreen("signup");
+      };
+      els["show-signin"].onclick = (e) => {
+        e.preventDefault();
+        setAuthStatus("signin-status", "");
+        showScreen("signin");
+      };
+      els["signup-btn"].onclick = () => doSignUp();
+      ["signup-username", "signup-display", "signup-password", "signup-key"].forEach((id) => {
+        els[id].addEventListener("keydown", (e) => {
+          if (e.key === "Enter") doSignUp();
         });
       });
       els["addkey-btn"].onclick = () => doSaveKey();

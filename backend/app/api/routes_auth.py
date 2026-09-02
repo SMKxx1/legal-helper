@@ -8,6 +8,7 @@ the JSON body — nothing is ever set as a cookie (plan §1: bearer, not cookies
 
 from __future__ import annotations
 
+import re
 import threading
 import time
 from datetime import UTC, datetime
@@ -15,14 +16,18 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Depends, Header, Request
 from pydantic import BaseModel
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session as DbSession
 
+from .. import crypto
 from ..auth import sessions as session_store
 from ..auth.deps import bearer_token
-from ..auth.security import dummy_verify, verify_password
+from ..auth.security import dummy_verify, hash_password, verify_password
+from ..config import settings
 from ..db import get_db
 from ..models import User
 from .errors import EngineError
+from .routes_me import validate_openrouter_key
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -114,6 +119,113 @@ def login(
         _record_failure(ip)
         raise EngineError(401, "invalid_credentials", "Invalid username or password.")
 
+    token, expires_at = session_store.create_session(db, user)
+    user.last_login_at = datetime.now(UTC)
+    db.commit()
+    return LoginResponse(token=token, expires_at=expires_at, user=user_out(user))
+
+
+#: Sign-up is deliberately cheaper to rate-limit than to CAPTCHA: every registration must present
+#: an OpenRouter key that OpenRouter itself accepts, so a bot needs a real funded account per
+#: attempt. The per-IP cap below is the backstop against someone scripting that anyway.
+_SIGNUP_LIMIT = 10
+_SIGNUP_WINDOW_S = 3600.0
+_signups: dict[str, list[float]] = {}
+
+_USERNAME_RE = re.compile(r"^[a-z0-9](?:[a-z0-9._-]{1,30}[a-z0-9])$")
+_MIN_PASSWORD_LEN = 8
+
+
+def _signup_throttled(ip: str) -> bool:
+    now = time.monotonic()
+    with _fail_lock:
+        recent = [t for t in _signups.get(ip, []) if now - t < _SIGNUP_WINDOW_S]
+        _signups[ip] = recent
+        return len(recent) >= _SIGNUP_LIMIT
+
+
+def _record_signup(ip: str) -> None:
+    with _fail_lock:
+        _signups.setdefault(ip, []).append(time.monotonic())
+
+
+def reset_signup_throttle() -> None:
+    """Test-only: the sign-up window is module-global and outlives a single test."""
+    with _fail_lock:
+        _signups.clear()
+
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    api_key: str
+    display_name: str | None = None
+
+
+@router.post("/register", response_model=LoginResponse, status_code=201)
+async def register(
+    body: RegisterRequest, request: Request, db: DbSession = Depends(get_db)
+) -> LoginResponse:
+    """Create an account and sign it in, in one step (plan §4.1 extended for self-service).
+
+    The OpenRouter key is validated against OpenRouter BEFORE the row is written, so an account
+    never exists in a state where its first review is guaranteed to fail. The key is stored
+    Fernet-encrypted exactly like the settings-screen path.
+    """
+    if not settings.signup_enabled:
+        raise EngineError(403, "signup_disabled", "Sign-up is closed on this server.")
+
+    ip = _client_ip(request)
+    if _signup_throttled(ip):
+        raise EngineError(
+            429, "too_many_signups", "Too many accounts created. Try again later."
+        )
+
+    username = body.username.strip().lower()
+    if not _USERNAME_RE.fullmatch(username):
+        raise EngineError(
+            422,
+            "invalid_username",
+            "Use 3-32 characters: lowercase letters, digits, dot, dash or underscore.",
+        )
+    if len(body.password) < _MIN_PASSWORD_LEN:
+        raise EngineError(
+            422,
+            "weak_password",
+            f"Use at least {_MIN_PASSWORD_LEN} characters.",
+        )
+
+    taken = db.execute(
+        select(User.id).where(User.username == username)
+    ).scalar_one_or_none()
+    if taken is not None:
+        raise EngineError(409, "username_taken", "That username is already registered.")
+
+    # Validate the key before creating anything — raises 422 if OpenRouter rejects it.
+    api_key = body.api_key.strip()
+    label, _limit_remaining = await validate_openrouter_key(api_key)
+
+    user = User(
+        username=username,
+        display_name=(body.display_name or "").strip() or username,
+        role="user",
+        password_hash=hash_password(body.password),
+        openrouter_key_enc=crypto.encrypt(api_key),
+        openrouter_key_last4=api_key[-4:],
+        openrouter_key_label=label,
+    )
+    db.add(user)
+    try:
+        db.commit()
+    except (
+        IntegrityError
+    ):  # lost a race against a concurrent signup on the same username
+        db.rollback()
+        raise EngineError(
+            409, "username_taken", "That username is already registered."
+        ) from None
+
+    _record_signup(ip)
     token, expires_at = session_store.create_session(db, user)
     user.last_login_at = datetime.now(UTC)
     db.commit()
