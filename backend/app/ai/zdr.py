@@ -70,12 +70,21 @@ def _parse_endpoint(row: dict) -> ZdrModel | None:
     """One row of ``GET /endpoints/zdr`` -> a :class:`ZdrModel`, or ``None`` if it isn't a
     healthy, structured-output-capable chat route."""
     status = row.get("status")
-    if status is not None and status != "healthy":
+    # OpenRouter reports a NUMERIC status per endpoint: 0 is serving normally, negative means
+    # deranked or disabled. (An earlier reading of this as the string "healthy" silently rejected
+    # every row, which emptied the model picker without any error anywhere.)
+    if isinstance(status, bool):
+        return None
+    if isinstance(status, int | float):
+        if status < 0:
+            return None
+    elif status is not None and status != "healthy":
         return None
     supported = set(row.get("supported_parameters") or [])
     if "response_format" not in supported:
         return None
-    model_id = row.get("id") or row.get("slug") or ""
+    # the rows key the model as `model_id`; `id`/`slug` are accepted only as a fallback shape
+    model_id = row.get("model_id") or row.get("id") or row.get("slug") or ""
     if not model_id:
         return None
     pricing = row.get("pricing") or {}
@@ -84,7 +93,9 @@ def _parse_endpoint(row: dict) -> ZdrModel | None:
     provider = row.get("provider_name") or row.get("provider") or model_id.split("/")[0]
     return ZdrModel(
         id=model_id,
-        name=row.get("name") or model_id,
+        # `model_name` is the readable one ("Z.AI: GLM 5.3 Flash"); `name` is the per-endpoint
+        # label ("Modal | z-ai/glm-5.3-flash"), which is not what a picker should show.
+        name=row.get("model_name") or row.get("name") or model_id,
         provider=provider,
         context_length=row.get("context_length"),
         prompt_usd_per_m=(float(prompt) * 1_000_000) if prompt is not None else None,
@@ -113,10 +124,14 @@ async def fetch_zdr_models(
     rows = body.get("data") if isinstance(body, dict) else None
     if rows is None:
         rows = []
+    # One row per PROVIDER endpoint, so a single model appears many times (18 rows for
+    # glm-5.3-flash alone). The picker wants models, not routes — keep the first sighting of each.
     models: list[ZdrModel] = []
+    seen: set[str] = set()
     for row in rows:
         parsed = _parse_endpoint(row)
-        if parsed is not None:
+        if parsed is not None and parsed.id not in seen:
+            seen.add(parsed.id)
             models.append(parsed)
     return models
 

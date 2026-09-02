@@ -21,8 +21,8 @@ Legal Helper has three capabilities:
 * ``bucket``              — the Railway bucket storing each review's original .docx (Phase 4).
 * ``openrouter_zdr_list`` — validation of OpenRouter's Zero-Data-Retention model list (Phase 2).
 
-``bucket`` and ``openrouter_zdr_list`` report ``disabled`` until the phase that wires their real
-check lands — that is by design, not a bug: there is nothing to check yet.
+``bucket`` reports ``disabled`` until its S3 settings are present — an expected state, not a
+fault: reviews still run, the document simply is not archived.
 """
 
 from __future__ import annotations

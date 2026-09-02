@@ -83,9 +83,10 @@ class Settings(BaseSettings):
     # leaves a z-ai model with no route at all. Set it only to pin a provider that actually
     # serves the configured model.
     openrouter_provider_only_deep: str = ""
-    # Set True once Phase 2 wires a live check of OpenRouter's GET /api/v1/endpoints/zdr list; until
-    # then the openrouter_zdr_list capability reports disabled (there is nothing to validate yet).
-    openrouter_zdr_list_ready: bool = False
+    # The live check against OpenRouter's GET /api/v1/endpoints/zdr is wired (ai/zdr.py) and
+    # verified against the real payload, so the capability reports enabled. Set False to make
+    # /api/status advertise the model picker as unavailable.
+    openrouter_zdr_list_ready: bool = True
     provider_timeout_s: float = 150.0
 
     # ---- Review engine -----------------------------------------------------

@@ -67,7 +67,7 @@ def test_field_defaults() -> None:
     assert s.openrouter_base_url == "https://openrouter.ai/api/v1"
     assert s.openrouter_provider_only_deep == ""
     assert s.openrouter_provider_only_deep_list == ()
-    assert s.openrouter_zdr_list_ready is False
+    assert s.openrouter_zdr_list_ready is True
     assert s.provider_timeout_s == 150.0
     assert s.review_concurrency == 2
     assert s.max_upload_mb == 10

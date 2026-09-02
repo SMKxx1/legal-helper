@@ -57,12 +57,18 @@ def test_bucket_missing_one_field_stays_disabled(
     assert "S3_SECRET_ACCESS_KEY" in reg.get(BUCKET).reason
 
 
-def test_openrouter_zdr_list_disabled_until_phase_2_wires_it() -> None:
-    # There is no live check yet (Phase 2) — the capability reports disabled unconditionally.
+def test_openrouter_zdr_list_is_enabled_now_that_the_live_check_works() -> None:
+    # ai/zdr.py checks OpenRouter's real /endpoints/zdr payload, so the capability advertises it.
     reg = build_registry(Settings(_env_file=None))
     status = reg.get(OPENROUTER_ZDR_LIST)
-    assert status.state is CapabilityState.DISABLED
-    assert status.critical is False
+    assert status.state is CapabilityState.ENABLED
+    assert status.critical is False  # a model picker outage must never fail /healthz
+    assert reg.healthy() is True
+
+
+def test_openrouter_zdr_list_can_be_switched_off() -> None:
+    reg = build_registry(Settings(_env_file=None, openrouter_zdr_list_ready=False))
+    assert reg.get(OPENROUTER_ZDR_LIST).state is CapabilityState.DISABLED
     assert reg.healthy() is True
 
 
