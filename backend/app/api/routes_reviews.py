@@ -211,6 +211,11 @@ async def create_review(
     doc_warnings = await asyncio.to_thread(
         _store_document, db, user, review, filename, data
     )
+    # Commit BEFORE handing the row to the background task. _store_document only flushes, so this
+    # session is still holding a row lock on the review; the task's first act is to UPDATE that
+    # same row, and it would block on the lock until this request's session is cleaned up — which
+    # cannot happen while the task is blocking the event loop it would be cleaned up on.
+    db.commit()
     review_id = review.id
     asyncio.create_task(
         _run_deep_review(review_id, text, our_side, api_key, models, doc_warnings)
@@ -230,10 +235,39 @@ async def _run_deep_review(
     models: ModelChoice,
     doc_warnings: list[str],
 ) -> None:
-    """The deep-mode background task. Opens its OWN DB session (the request's session is gone by
-    the time this runs) and always releases the concurrency slot it was submitted holding.
-    ``doc_warnings`` carries forward any ``document_not_stored`` warning from the (already-done,
-    synchronous) bucket upload the request handler made before spawning this task."""
+    """The deep-mode background task: run the whole job in ONE worker thread, then free the slot.
+
+    Nothing blocking may touch the event loop here. The DB calls below look harmless, but
+    ``review.status = "running"; commit()`` is an UPDATE on a row the spawning request may still
+    hold a lock on — and waiting for that lock on the loop froze the entire service (no /healthz,
+    no landing page) until the container was restarted. A worker thread can wait safely; the loop
+    cannot, because it is what releases the lock.
+    """
+    try:
+        await asyncio.to_thread(
+            _deep_review_blocking,
+            review_id,
+            text,
+            our_side,
+            api_key,
+            models,
+            doc_warnings,
+        )
+    finally:
+        await _slots.release()
+
+
+def _deep_review_blocking(
+    review_id: str,
+    text: str,
+    our_side: str,
+    api_key: str,
+    models: ModelChoice,
+    doc_warnings: list[str],
+) -> None:
+    """The deep review, start to finish, on a worker thread. Opens its OWN DB session (the
+    request's session is gone by the time this runs). ``doc_warnings`` carries forward any
+    ``document_not_stored`` warning from the bucket upload the request handler already did."""
     from ..models import (
         Review,  # local import: avoids a module-level cycle with reviews_repo
     )
@@ -247,9 +281,7 @@ async def _run_deep_review(
         db.commit()
         started = time.perf_counter()
         try:
-            result = await asyncio.to_thread(
-                run_review, text, "deep", our_side, api_key, models=models
-            )
+            result = run_review(text, "deep", our_side, api_key, models=models)
         except ProviderError as exc:
             reviews_repo.fail_review(db, review, error_code_for(exc))
             return
@@ -262,7 +294,6 @@ async def _run_deep_review(
         reviews_repo.complete_review(db, review, result, duration_ms=duration_ms)
     finally:
         db.close()
-        await _slots.release()
 
 
 @router.get("/{review_id}")
