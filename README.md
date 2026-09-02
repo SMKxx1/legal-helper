@@ -340,7 +340,7 @@ that matter in production:
 | Reliability | `/healthz` 200; data survives a redeploy | Railway healthcheck; `backend/scripts/smoke.py` |
 | Security | Every `/api/*` route except login and status is 401 without a valid bearer token | `tests/test_auth_required.py` |
 | Secrets | Keys encrypted at rest; the API never returns more than the last 4 characters | `tests/test_me_key.py`, `tests/test_crypto.py` |
-| Privacy | Every OpenRouter request carries `provider.zdr=true`, `allow_fallbacks=false`; no route → error | `test_zdr_fail_closed` in `tests/test_openrouter_adapter.py` |
+| Privacy | Every OpenRouter request carries `provider.zdr=true` and `data_collection=deny`; no compliant route → error, never a downgrade | `test_zdr_fail_closed` in `tests/test_openrouter_adapter.py` |
 | Safety | A finding whose `span` is not verbatim in the document is flagged unfaithful, never applied | `tests/test_orchestrator.py`, `tests/test_spans.py` |
 | Access control | Another user cannot download your document | `tests/test_review_document.py` |
 | Performance | p95 of `GET /api/me/usage` < 500 ms | `backend/scripts/smoke.py` (measured, not unit-tested) |

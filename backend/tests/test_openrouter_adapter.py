@@ -219,14 +219,24 @@ def test_provider_pin_without_zdr_still_disables_fallbacks() -> None:
 
 def test_zdr_fail_closed() -> None:
     """PLAN §6, the most important test in the repo: EVERY outgoing OpenRouter request body must
-    carry the fail-closed ZDR provider block — across every agent's model, every effort, every
-    style — with no code path that omits or waters it down while ``zdr_only`` (the adapter's
-    default) is on."""
+    carry the ZDR filters — across every agent's model, every effort, every style — with no code
+    path that omits or waters them down while ``zdr_only`` (the adapter's default) is on.
+
+    The guarantee lives in ``zdr`` and ``data_collection``: they are hard filters, so a request
+    that no compliant provider can serve returns ``404 No endpoints found matching your data
+    policy`` rather than being served by a non-compliant one (that fail-closed behaviour is
+    asserted by ``test_no_zdr_route_404_surfaces_as_stable_error_code``).
+
+    ``allow_fallbacks`` is deliberately NOT part of that guarantee: it only decides *which* of the
+    surviving compliant providers serves the request. It is on because pinning to a single
+    provider — 1 of the 21 serving glm-5.3 under ZDR — meant one busy upstream pool failed the
+    whole review while 20 equally-compliant providers sat idle.
+    """
     seen_bodies: list[dict] = []
     for model in (
-        "anthropic/claude-haiku-4-5",
-        "anthropic/claude-sonnet-4-6",
-        "anthropic/claude-opus-4-8",
+        "z-ai/glm-5.3",
+        "z-ai/glm-5.3-flash",
+        "anthropic/claude-opus-4.8",
         "openai/gpt-5-mini",
         "google/gemini-2.5-pro",
     ):
@@ -234,11 +244,11 @@ def test_zdr_fail_closed() -> None:
             seen_bodies.append(build_openrouter_request(make_req(effort=effort), model))
     assert seen_bodies  # sanity: the matrix actually ran
     for body in seen_bodies:
-        assert body["provider"] == {
-            "data_collection": "deny",
-            "zdr": True,
-            "allow_fallbacks": False,
-        }
+        # the compliance half — never absent, never weakened
+        assert body["provider"]["zdr"] is True
+        assert body["provider"]["data_collection"] == "deny"
+        # and nothing may pin the request to a single provider by default
+        assert "only" not in body["provider"]
 
     # The live-call path too, not just the pure builder: complete() must send the same block.
     handler, seen = capture(
@@ -248,7 +258,16 @@ def test_zdr_fail_closed() -> None:
     payload = json.loads(seen[0].content.decode())
     assert payload["provider"]["zdr"] is True
     assert payload["provider"]["data_collection"] == "deny"
-    assert payload["provider"]["allow_fallbacks"] is False
+
+
+def test_an_explicit_provider_pin_disables_fallbacks() -> None:
+    """A pin means THIS provider or nothing — widening it would defeat the point of pinning."""
+    body = build_openrouter_request(
+        make_req(), "z-ai/glm-5.3", provider_only=("google-vertex",)
+    )
+    assert body["provider"]["only"] == ["google-vertex"]
+    assert body["provider"]["allow_fallbacks"] is False
+    assert body["provider"]["zdr"] is True  # a pin never drops the ZDR filter
 
 
 def test_no_zdr_route_404_surfaces_as_stable_error_code() -> None:

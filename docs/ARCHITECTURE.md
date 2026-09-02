@@ -47,7 +47,7 @@ There is **no separate worker queue, message broker, or job system**. The async 
 
 - User supplies their own API key (entered in the add-in, encrypted server-side)
 - Server calls OpenRouter with the user's key per review
-- Requests carry `provider: {zdr: true, data_collection: "deny", allow_fallbacks: false}` — Zero Data Retention policy
+- Requests carry `provider: {zdr: true, data_collection: "deny"}` — hard filters, so an uncompliant route is an error, not a downgrade
 - Model choices are validated against OpenRouter's `/api/v1/endpoints/zdr` endpoint (cached, updated on startup)
 - If no ZDR route exists for a model, the review fails with `no_zdr_route` (fail-closed, never silent downgrade)
 
@@ -252,7 +252,7 @@ The orchestrator runs agents in sequence and parallel:
 - User's OpenRouter key is encrypted with Fernet (a symmetric cipher) using `APP_SECRET_KEY`
 - Encrypted key is stored in `users.openrouter_key_enc` in Postgres
 - Decryption happens in-memory, per review, and the plaintext key is never logged or persisted
-- Every OpenRouter request carries `provider: {zdr: true, data_collection: "deny", allow_fallbacks: false}`
+- Every OpenRouter request carries `provider: {zdr: true, data_collection: "deny"}`
 - Before each review, the app calls OpenRouter's `/api/v1/endpoints/zdr` to fetch the current list of ZDR-capable models
 - If a model is not in the list, the review fails with `no_zdr_route` (fail-closed)
 - OpenRouter's response includes `usage.cost`; the app records this in `llm_calls` and checks against `MAX_MONTHLY_COST_USD`

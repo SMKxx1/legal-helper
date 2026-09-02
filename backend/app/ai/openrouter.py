@@ -27,7 +27,7 @@ Contracts realized here (PLAN §3.8, §6):
   as ``_anthropic_supports_effort``). OpenRouter's knob is low|medium|high — the neutral "max"
   clamps to "high" (documented deviation vs the native Anthropic "max").
 - **ZDR fail-closed (PLAN §6)** — under ``zdr_only`` every request carries
-  ``provider: {data_collection: "deny", zdr: true, allow_fallbacks: false}`` plus optional
+  ``provider: {data_collection: "deny", zdr: true}`` (hard filters) plus optional
   ``only: [...]`` pinning. When no route satisfies these preferences OpenRouter answers with an
   error (observed as 404 "no providers available"), which maps to a TERMINAL failure here — there
   is no code path that drops the preferences to obtain a response (an error, never a downgrade).
@@ -136,15 +136,26 @@ def _schema_name(role: str) -> str:
 
 def _provider_prefs(zdr_only: bool, provider_only: tuple[str, ...]) -> dict:
     """OpenRouter routing preferences (PLAN §6, fail-closed). Under ZDR-only: deny provider data
-    collection, admit only ZDR-qualifying endpoints, and disable fallbacks so a request can never
-    silently downgrade to a non-ZDR route — an unroutable request is an ERROR. An explicit
-    provider pin (``only``) also disables fallbacks: a pin that can't be honoured must not widen."""
+    collection and admit only ZDR-qualifying endpoints. Those two are hard filters, so a request no
+    compliant provider can serve is an ERROR, never a silent downgrade. Fallbacks are allowed
+    WITHIN that compliant set — see below. An explicit provider pin (``only``) disables them: a pin
+    that can't be honoured must not widen."""
     prefs: dict = {}
     if zdr_only:
-        prefs = {"data_collection": "deny", "zdr": True, "allow_fallbacks": False}
+        # `zdr` and `data_collection` are HARD FILTERS on the candidate providers, and
+        # `allow_fallbacks` only chooses among whatever survives them. Verified against the live
+        # API: with fallbacks on, glm-5.3 was served by Modal/Together/BaseTen — all three on
+        # OpenRouter's ZDR list — while a model with no ZDR route still returned
+        # `404 No endpoints found matching your data policy`, unserved. Compliance is unchanged.
+        #
+        # It used to be False, which pinned every request to one provider out of the 21 serving
+        # this model under ZDR. When that provider's shared upstream pool was busy the review just
+        # failed with `rate_limited`, even though 20 equally-compliant providers were idle.
+        prefs = {"data_collection": "deny", "zdr": True, "allow_fallbacks": True}
     if provider_only:
+        # An explicit pin means THIS provider or nothing — widening would defeat the point.
         prefs["only"] = list(provider_only)
-        prefs.setdefault("allow_fallbacks", False)
+        prefs["allow_fallbacks"] = False
     return prefs
 
 

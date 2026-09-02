@@ -86,7 +86,7 @@ Suggested placement: after slide 28 (architecture) and inside the rewritten Sect
 
 ### 5. **Data-privacy routing (Zero Data Retention)**
 - What ZDR means (the provider does not retain or use data for training)
-- Per-request policy: `provider: {zdr: true, data_collection: "deny", allow_fallbacks: false}`
+- Per-request policy: `provider: {zdr: true, data_collection: "deny"}` — hard filters on which providers may serve it
 - Fail-closed: no route → error, never a silent downgrade
 - Model allowlist from `/api/v1/endpoints/zdr` (cached, auto-refreshed)
 - Code: `backend/app/ai/zdr.py`, `openrouter.py`
@@ -263,7 +263,7 @@ This replaces slide 22's "Word Agent examples" with Legal Helper's testable requ
 | **Reliability** | `/healthz` returns 200 on 10/10 checks after deploy; data survives a redeploy | Railway healthcheck; smoke; redeploy demo |
 | **Security** | Every `/api/*` route except login and status returns 401 without a valid bearer token | Integration tests; smoke |
 | **Secrets** | No key in git; user keys encrypted at rest; API never returns more than the last 4 characters | `test_me.py`; `grep` in CI |
-| **Privacy** | Every OpenRouter request carries `provider.zdr=true` and `allow_fallbacks=false`; no route → error | `test_zdr_fail_closed.py` |
+| **Privacy** | Every OpenRouter request carries `provider.zdr=true` and `data_collection=deny`; no compliant route → error | `test_zdr_fail_closed` |
 | **Performance** | p95 of `GET /api/me/usage` < 500 ms with 10,000 `llm_calls` rows | Smoke timing; indexes |
 | **Cost** | A user's reviews are refused once monthly spend exceeds `MAX_MONTHLY_COST_USD` (default $5); at most `MAX_DOCS_PER_USER` objects per user | `test_budget.py`; `test_retention.py` |
 | **Recovery** | Reviews left `running` by a crash are marked failed within 15 minutes of restart | `test_stale_jobs.py` |

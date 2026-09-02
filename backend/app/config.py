@@ -75,11 +75,11 @@ class Settings(BaseSettings):
     model_deep: str = "z-ai/glm-5.3"
 
     # ---- OpenRouter (ZDR-pinned — every request carries provider {data_collection:'deny',
-    # zdr:true, allow_fallbacks:false}; no route -> error, never a silent downgrade) -------------
+    # zdr:true}; no compliant route -> error, never a silent downgrade) ---------------------------
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     # Deep-tier provider pin, empty by default. It existed to force Anthropic Opus onto
     # google-vertex (its default ZDR route rejects json_schema) — and with a non-Anthropic deep
-    # model that pin is actively harmful: `only: [google-vertex]` plus allow_fallbacks:false
+    # model that pin is actively harmful: `only: [google-vertex]` disables fallbacks and
     # leaves a z-ai model with no route at all. Set it only to pin a provider that actually
     # serves the configured model.
     openrouter_provider_only_deep: str = ""
