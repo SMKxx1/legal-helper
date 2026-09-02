@@ -25,8 +25,12 @@ CLASSIFIER_SCHEMA: dict = {
         "one_line_summary": {"type": "string"},  # reasoning first (D1)
         "parties": {"type": "array", "items": {"type": "string"}},
         "governing_law": {"type": ["string", "null"]},
-        "doc_type": {"type": "string"},  # e.g. "nda", "msa", "employment_agreement" — verdict
-        "our_side_guess": {"type": "string"},  # e.g. "the Customer", "the Receiving Party"
+        "doc_type": {
+            "type": "string"
+        },  # e.g. "nda", "msa", "employment_agreement" — verdict
+        "our_side_guess": {
+            "type": "string"
+        },  # e.g. "the Customer", "the Receiving Party"
         "confidence": {"type": "string", "enum": ["high", "medium", "low"]},
     },
 }
@@ -55,9 +59,13 @@ FINDING_SCHEMA: dict = {
         "clause_type": {"type": "string"},  # a playbook clause_type, or "other"
         "clause_heading": {"type": "string"},  # the document's own heading/label, or ""
         "span": {"type": "string"},  # verbatim quote from the document
-        "suggested_language": {"type": "string"},  # replacement text only, or "" to delete
+        "suggested_language": {
+            "type": "string"
+        },  # replacement text only, or "" to delete
         "rationale": {"type": "string"},
-        "playbook_position": {"type": "string"},  # which standard position this deviates from
+        "playbook_position": {
+            "type": "string"
+        },  # which standard position this deviates from
         "severity": {"type": "string", "enum": ["high", "medium", "low", "none"]},
         "change_type": {
             "type": "string",

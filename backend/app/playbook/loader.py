@@ -50,7 +50,9 @@ def validate(pb: dict) -> list[Position]:
     if not isinstance(pb, dict):
         raise PlaybookValidationError("playbook must be a JSON object")
     if not isinstance(pb.get("version"), str) or not pb["version"].strip():
-        raise PlaybookValidationError("playbook must carry a non-empty 'version' string")
+        raise PlaybookValidationError(
+            "playbook must carry a non-empty 'version' string"
+        )
     raw_positions = pb.get("positions")
     if not isinstance(raw_positions, list) or not raw_positions:
         raise PlaybookValidationError("'positions' must be a non-empty list")
@@ -63,7 +65,9 @@ def validate(pb: dict) -> list[Position]:
             raise PlaybookValidationError(f"{loc}: must be an object")
         ct = p.get("clause_type")
         if not (isinstance(ct, str) and ct.strip()):
-            raise PlaybookValidationError(f"{loc}: 'clause_type' must be a non-empty string")
+            raise PlaybookValidationError(
+                f"{loc}: 'clause_type' must be a non-empty string"
+            )
         if ct in seen:
             raise PlaybookValidationError(f"{loc}: duplicate clause_type {ct!r}")
         seen.add(ct)
@@ -74,8 +78,10 @@ def validate(pb: dict) -> list[Position]:
                 f"got {presence!r}"
             )
         weight = p.get("risk_weight")
-        if not isinstance(weight, int) or isinstance(weight, bool) or not (
-            _MIN_WEIGHT <= weight <= _MAX_WEIGHT
+        if (
+            not isinstance(weight, int)
+            or isinstance(weight, bool)
+            or not (_MIN_WEIGHT <= weight <= _MAX_WEIGHT)
         ):
             raise PlaybookValidationError(
                 f"{loc} ({ct}): 'risk_weight' must be an int in "
@@ -83,7 +89,9 @@ def validate(pb: dict) -> list[Position]:
             )
         standard = p.get("standard_position")
         if not (isinstance(standard, str) and standard.strip()):
-            raise PlaybookValidationError(f"{loc} ({ct}): 'standard_position' must be a non-empty string")
+            raise PlaybookValidationError(
+                f"{loc} ({ct}): 'standard_position' must be a non-empty string"
+            )
         walk_away = p.get("walk_away") or ""
         positions.append(
             Position(
@@ -110,7 +118,9 @@ def load_playbook(path: str | Path = DEFAULT_PLAYBOOK_PATH) -> Playbook:
     try:
         raw = json.loads(p.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
-        raise PlaybookValidationError(f"could not read/parse playbook at {p}: {exc}") from exc
+        raise PlaybookValidationError(
+            f"could not read/parse playbook at {p}: {exc}"
+        ) from exc
     positions = validate(raw)
     return Playbook(version=str(raw["version"]), positions=tuple(positions))
 

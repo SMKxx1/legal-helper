@@ -135,7 +135,9 @@ def test_deep_review_end_to_end_with_fake_gateway():
     result = orchestrator.run_review(DOC_TEXT, "deep", "", "sk-or-fake")
 
     assert result.doc_type == "master_services_agreement"
-    assert result.our_side == "the Customer"  # classifier's guess, since our_side was blank
+    assert (
+        result.our_side == "the Customer"
+    )  # classifier's guess, since our_side was blank
     assert not result.warnings  # nothing degraded
 
     # Both findings survive the merge (severity != "none"); only the fabricated one loses
@@ -172,7 +174,9 @@ def test_deep_review_end_to_end_with_fake_gateway():
 def test_quick_review_skips_coverage():
     result = orchestrator.run_review(DOC_TEXT, "quick", "the Customer", "sk-or-fake")
 
-    assert result.our_side == "the Customer"  # explicit our_side wins over the classifier's guess
+    assert (
+        result.our_side == "the Customer"
+    )  # explicit our_side wins over the classifier's guess
     assert result.coverage is None
     # classifier + reviewer only — no coverage call in quick mode.
     assert len(result.calls) == 2

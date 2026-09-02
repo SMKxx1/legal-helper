@@ -241,7 +241,9 @@ def test_zdr_fail_closed() -> None:
         }
 
     # The live-call path too, not just the pure builder: complete() must send the same block.
-    handler, seen = capture([ok_body(usage={"prompt_tokens": 1, "completion_tokens": 1})])
+    handler, seen = capture(
+        [ok_body(usage={"prompt_tokens": 1, "completion_tokens": 1})]
+    )
     make_adapter(handler).complete(make_req())
     payload = json.loads(seen[0].content.decode())
     assert payload["provider"]["zdr"] is True

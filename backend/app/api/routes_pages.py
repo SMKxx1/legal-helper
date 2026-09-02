@@ -47,7 +47,10 @@ def _totals(db: DbSession) -> dict:
     users = int(db.execute(select(func.count(User.id))).scalar() or 0)
     reviews = int(db.execute(select(func.count(Review.id))).scalar() or 0)
     cost_usd = round(
-        float(db.execute(select(func.coalesce(func.sum(Review.cost_usd), 0.0))).scalar() or 0.0),
+        float(
+            db.execute(select(func.coalesce(func.sum(Review.cost_usd), 0.0))).scalar()
+            or 0.0
+        ),
         2,
     )
     return {"users": users, "reviews": reviews, "cost_usd": cost_usd}
@@ -57,7 +60,9 @@ def _status_payload(request: Request, db: DbSession) -> dict:
     registry: CapabilityRegistry = request.app.state.capabilities
     capabilities = {c["name"]: c["state"] for c in registry.report()}
     started_at = getattr(request.app.state, "started_at", None)
-    uptime_s = round(time.monotonic() - started_at, 1) if started_at is not None else 0.0
+    uptime_s = (
+        round(time.monotonic() - started_at, 1) if started_at is not None else 0.0
+    )
     return {
         "version": _APP_VERSION,
         "commit": _commit(),
@@ -159,4 +164,6 @@ _LANDING_TEMPLATE = Template(
 @router.get("/", response_class=HTMLResponse)
 def landing_page(request: Request, db: DbSession = Depends(get_db)) -> HTMLResponse:
     status = _status_payload(request, db)
-    return HTMLResponse(_LANDING_TEMPLATE.render(status=status, now=datetime.now(UTC).isoformat()))
+    return HTMLResponse(
+        _LANDING_TEMPLATE.render(status=status, now=datetime.now(UTC).isoformat())
+    )

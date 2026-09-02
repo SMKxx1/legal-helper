@@ -73,7 +73,9 @@ def _parse_upload(data: bytes) -> str:
     try:
         parsed = extract_docx_bytes(data)
     except ValueError as exc:
-        raise EngineError(422, "empty_document", f"Could not read this document: {exc}") from exc
+        raise EngineError(
+            422, "empty_document", f"Could not read this document: {exc}"
+        ) from exc
     text = parsed.full_text
     if len(text) < 200:
         raise EngineError(
@@ -88,7 +90,9 @@ def _parse_upload(data: bytes) -> str:
     return text
 
 
-def _store_document(db: DbSession, user: User, review, filename: str, data: bytes) -> list[str]:
+def _store_document(
+    db: DbSession, user: User, review, filename: str, data: bytes
+) -> list[str]:
     """Archive the original ``.docx`` in the bucket (plan §4.5), then enforce the per-user
     retention cap. Mutates ``review.doc_object_key``/``doc_bytes`` in place (persisted by the
     caller's own commit) and returns warnings to fold into the review result: empty when the
@@ -136,7 +140,9 @@ async def create_review(
     data = await file.read(settings.max_upload_bytes + 1)
     if len(data) > settings.max_upload_bytes:
         raise EngineError(
-            413, "file_too_large", f"File exceeds the {settings.max_upload_mb} MB limit."
+            413,
+            "file_too_large",
+            f"File exceeds the {settings.max_upload_mb} MB limit.",
         )
     text = _parse_upload(data)
 
@@ -148,6 +154,7 @@ async def create_review(
         )
 
     filename = file.filename or "document.docx"
+    assert user.openrouter_key_enc is not None  # guaranteed by _preflight above
     api_key = crypto.decrypt(user.openrouter_key_enc)
     models = _models_for(user)
 
@@ -177,7 +184,9 @@ async def create_review(
             result.warnings.extend(doc_warnings)
             duration_ms = int((time.perf_counter() - started) * 1000)
             reviews_repo.complete_review(db, review, result, duration_ms=duration_ms)
-            return JSONResponse(reviews_repo.result_to_json(review, result), status_code=200)
+            return JSONResponse(
+                reviews_repo.result_to_json(review, result), status_code=200
+            )
         finally:
             await _slots.release()
 
@@ -216,7 +225,9 @@ async def _run_deep_review(
     the time this runs) and always releases the concurrency slot it was submitted holding.
     ``doc_warnings`` carries forward any ``document_not_stored`` warning from the (already-done,
     synchronous) bucket upload the request handler made before spawning this task."""
-    from ..models import Review  # local import: avoids a module-level cycle with reviews_repo
+    from ..models import (
+        Review,  # local import: avoids a module-level cycle with reviews_repo
+    )
 
     db = SessionLocal()
     try:
@@ -247,7 +258,9 @@ async def _run_deep_review(
 
 @router.get("/{review_id}")
 def get_review(
-    review_id: str, user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+    review_id: str,
+    user: User = Depends(get_current_user),
+    db: DbSession = Depends(get_db),
 ):
     review = reviews_repo.get_owned(db, user, review_id)
     if review is None:
@@ -261,7 +274,9 @@ def get_review(
 
 @router.get("/{review_id}/document")
 def get_review_document(
-    review_id: str, user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+    review_id: str,
+    user: User = Depends(get_current_user),
+    db: DbSession = Depends(get_db),
 ):
     """302 to a 15-minute presigned GET URL for the review's original ``.docx`` (plan §4.5).
     Owner-only: :func:`reviews_repo.get_owned` returns ``None`` for another user's review, which
@@ -278,7 +293,9 @@ def get_review_document(
 
 @router.get("")
 def list_reviews(
-    limit: int = 20, user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+    limit: int = 20,
+    user: User = Depends(get_current_user),
+    db: DbSession = Depends(get_db),
 ):
     limit = max(1, min(limit, 100))
     reviews = reviews_repo.list_for_user(db, user, limit=limit)
@@ -302,7 +319,9 @@ def list_reviews(
 
 @router.delete("/{review_id}", status_code=204)
 def delete_review(
-    review_id: str, user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+    review_id: str,
+    user: User = Depends(get_current_user),
+    db: DbSession = Depends(get_db),
 ) -> None:
     review = reviews_repo.get_owned(db, user, review_id)
     if review is None:

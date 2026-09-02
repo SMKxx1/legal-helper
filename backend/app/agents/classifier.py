@@ -13,9 +13,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.ai.gateway import Gateway, fence_document
 from app.agents.base import Agent, run
 from app.agents.schemas import CLASSIFIER_SCHEMA
+from app.ai.gateway import Gateway, fence_document
 
 #: Only the opening slice is sent — enough to identify the document type/parties/governing law,
 #: at a fraction of the cost of the full document (the reviewer sees the whole thing).
@@ -34,7 +34,9 @@ CLASSIFIER_SYSTEM = (
 )
 
 
-def build_classifier_agent(*, model_effort: str = "low", max_tokens: int = 1024) -> Agent:
+def build_classifier_agent(
+    *, model_effort: str = "low", max_tokens: int = 1024
+) -> Agent:
     return Agent(
         name="classifier",
         system=CLASSIFIER_SYSTEM,

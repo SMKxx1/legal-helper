@@ -1,7 +1,8 @@
 """The reviewer agent (plan §4.2, generalised from the old ``engine/wholedoc.py``): one call that
 reads the WHOLE document against the playbook and lists every clause that leaves our side worse
 off than the playbook's standard position. No baseline/template comparison (that concept — "our
-standard NDA" — was Amperesand-specific and is gone); the playbook positions ARE the standard.
+standard NDA" — was specific to the prior single-company tool and is gone); the playbook
+positions ARE the standard.
 
 Two styles, matching the add-in's Quick/Deep toggle (plan §4.2):
 
@@ -19,9 +20,9 @@ from __future__ import annotations
 
 import re
 
-from app.ai.gateway import Gateway, fence_document
 from app.agents.base import Agent, run
 from app.agents.schemas import FINDING_COERCE_DEFAULTS, REVIEWER_SCHEMA
+from app.ai.gateway import Gateway, fence_document
 
 REVIEWER_SYSTEM_TRIAGE = (
     "You are a senior commercial lawyer assisting {our_side} (this is assistive review, not legal "
@@ -76,7 +77,9 @@ def build_reviewer_agent(
 ) -> Agent:
     """``style`` is ``"triage"`` (quick) or ``"edit"`` (deep) — see module docstring."""
     if style not in ("triage", "edit"):
-        raise ValueError(f"unknown reviewer style {style!r}; expected 'triage' or 'edit'")
+        raise ValueError(
+            f"unknown reviewer style {style!r}; expected 'triage' or 'edit'"
+        )
     system = REVIEWER_SYSTEM_TRIAGE if style == "triage" else REVIEWER_SYSTEM_EDIT
     return Agent(
         name="reviewer",
@@ -114,9 +117,15 @@ def run_reviewer(
     """One whole-document reviewer pass. Returns the raw findings (dicts, LLM-shaped — the
     orchestrator does span verification, dedupe, and severity pruning)."""
     agent = build_reviewer_agent(style=style, effort=effort)
-    system = agent.system.format(our_side=our_side or "the reviewing party", doc_type=doc_type or "document")
+    system = agent.system.format(
+        our_side=our_side or "the reviewing party", doc_type=doc_type or "document"
+    )
     agent = Agent(
-        name=agent.name, system=system, schema=agent.schema, effort=agent.effort, max_tokens=agent.max_tokens
+        name=agent.name,
+        system=system,
+        schema=agent.schema,
+        effort=agent.effort,
+        max_tokens=agent.max_tokens,
     )
     task = build_task(full_text)
     result = run(

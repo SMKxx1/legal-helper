@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import random
 from datetime import UTC, datetime, timedelta, timezone
+from typing import TypeVar
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session as DbSession
@@ -80,7 +81,9 @@ def seed_users(db: DbSession) -> int:
 _RNG_SEED = 2026
 _REVIEW_COUNT = 140
 _FAILED_REVIEW_COUNT = 3
-_SGT = timezone(timedelta(hours=8))  # Singapore time — no zoneinfo needed for a fixed offset
+_SGT = timezone(
+    timedelta(hours=8)
+)  # Singapore time — no zoneinfo needed for a fixed offset
 _PLAYBOOK_VERSION = "lh-1"
 
 #: username -> relative activity weight. Two heavy (alice.tan, ben.lim), two light
@@ -142,12 +145,30 @@ _DOC_TYPE_INFO: dict[str, dict] = {
 }
 
 _COMPANIES = [
-    "Acme", "Northwind", "Globex", "Initech", "Umbrella", "Hooli", "Soylent", "Stark",
-    "Wayne", "Wonka", "Cyberdyne", "Vandelay", "Contoso", "Fabrikam", "Tyrell", "Massive Dynamic",
+    "Acme",
+    "Northwind",
+    "Globex",
+    "Initech",
+    "Umbrella",
+    "Hooli",
+    "Soylent",
+    "Stark",
+    "Wayne",
+    "Wonka",
+    "Cyberdyne",
+    "Vandelay",
+    "Contoso",
+    "Fabrikam",
+    "Tyrell",
+    "Massive Dynamic",
 ]
 
 #: (risk_tier, weight) — plan §4.6: "35/45/20 (green/yellow/red)".
-_RISK_TIER_WEIGHTS: list[tuple[str, float]] = [("green", 0.35), ("yellow", 0.45), ("red", 0.20)]
+_RISK_TIER_WEIGHTS: list[tuple[str, float]] = [
+    ("green", 0.35),
+    ("yellow", 0.45),
+    ("red", 0.20),
+]
 #: (mode, weight) — plan §4.6: "65% quick / 35% deep".
 _MODE_WEIGHTS: list[tuple[str, float]] = [("quick", 0.65), ("deep", 0.35)]
 
@@ -196,8 +217,8 @@ _FINDING_POOL: list[dict] = [
         "severity": "high",
         "title": "No standard carve-outs from confidentiality",
         "rationale": "The definition of confidential information has no carve-out for information that is already public, already known, or independently developed.",
-        "span": "\"Confidential Information\" means any information disclosed by either party to the other, in any form.",
-        "suggested_language": "\"Confidential Information\" excludes information that (a) is or becomes public through no fault of the receiving party, (b) was already known to the receiving party without an obligation of confidentiality, (c) is independently developed without use of the disclosing party's Confidential Information, or (d) is rightfully received from a third party.",
+        "span": '"Confidential Information" means any information disclosed by either party to the other, in any form.',
+        "suggested_language": '"Confidential Information" excludes information that (a) is or becomes public through no fault of the receiving party, (b) was already known to the receiving party without an obligation of confidentiality, (c) is independently developed without use of the disclosing party\'s Confidential Information, or (d) is rightfully received from a third party.',
         "change_type": "modify",
     },
     {
@@ -423,7 +444,10 @@ _FINDING_POOL: list[dict] = [
 ]
 
 
-def _weighted_choice(rng: random.Random, options: list[tuple]) -> object:
+_T = TypeVar("_T")
+
+
+def _weighted_choice(rng: random.Random, options: list[tuple[_T, float]]) -> _T:
     """Pick one value from ``[(value, weight), ...]``."""
     total = sum(w for _, w in options)
     r = rng.uniform(0, total)
@@ -440,10 +464,14 @@ def _random_timestamp(rng: random.Random, now_utc: datetime) -> datetime:
     distribution peaked at "today") and toward SGT weekday business hours (plan §4.6)."""
     now_sgt = now_utc.astimezone(_SGT)
     candidate_date = now_sgt.date()
-    for _ in range(6):  # a handful of redraws to bias away from weekends, not a hard filter
+    for _ in range(
+        6
+    ):  # a handful of redraws to bias away from weekends, not a hard filter
         day_offset = int(rng.triangular(0, 60, 0))
         candidate_date = (now_sgt - timedelta(days=day_offset)).date()
-        if candidate_date.weekday() < 5 or rng.random() < 0.2:  # Mon-Fri, or 20% keep a weekend
+        if (
+            candidate_date.weekday() < 5 or rng.random() < 0.2
+        ):  # Mon-Fri, or 20% keep a weekend
             break
     hour = rng.randint(9, 18)
     local_dt = datetime(
@@ -504,8 +532,16 @@ def _cost_band(rng: random.Random, lo: float, hi: float) -> float:
 
 
 def _build_call(
-    rng: random.Random, agent: str, model: str, *, cost_lo: float, cost_hi: float,
-    tokens_lo: int, tokens_hi: int, latency_lo: int, latency_hi: int,
+    rng: random.Random,
+    agent: str,
+    model: str,
+    *,
+    cost_lo: float,
+    cost_hi: float,
+    tokens_lo: int,
+    tokens_hi: int,
+    latency_lo: int,
+    latency_hi: int,
 ) -> LlmCallRecord:
     prompt_tokens = rng.randint(tokens_lo, tokens_hi)
     completion_tokens = rng.randint(max(50, tokens_lo // 6), max(100, tokens_hi // 4))
@@ -527,32 +563,56 @@ def _calls_for(rng: random.Random, mode: str) -> list[LlmCallRecord]:
     cost/token bands per agent."""
     calls = [
         _build_call(
-            rng, "classifier", _MODEL_CLASSIFIER,
-            cost_lo=0.001, cost_hi=0.006, tokens_lo=800, tokens_hi=2500,
-            latency_lo=700, latency_hi=2500,
+            rng,
+            "classifier",
+            _MODEL_CLASSIFIER,
+            cost_lo=0.001,
+            cost_hi=0.006,
+            tokens_lo=800,
+            tokens_hi=2500,
+            latency_lo=700,
+            latency_hi=2500,
         )
     ]
     if mode == "deep":
         calls.append(
             _build_call(
-                rng, "reviewer", _MODEL_DEEP,
-                cost_lo=0.35, cost_hi=1.40, tokens_lo=6000, tokens_hi=20000,
-                latency_lo=15000, latency_hi=90000,
+                rng,
+                "reviewer",
+                _MODEL_DEEP,
+                cost_lo=0.35,
+                cost_hi=1.40,
+                tokens_lo=6000,
+                tokens_hi=20000,
+                latency_lo=15000,
+                latency_hi=90000,
             )
         )
         calls.append(
             _build_call(
-                rng, "coverage", _MODEL_QUICK,
-                cost_lo=0.03, cost_hi=0.10, tokens_lo=3000, tokens_hi=8000,
-                latency_lo=3000, latency_hi=9000,
+                rng,
+                "coverage",
+                _MODEL_QUICK,
+                cost_lo=0.03,
+                cost_hi=0.10,
+                tokens_lo=3000,
+                tokens_hi=8000,
+                latency_lo=3000,
+                latency_hi=9000,
             )
         )
     else:
         calls.append(
             _build_call(
-                rng, "reviewer", _MODEL_QUICK,
-                cost_lo=0.03, cost_hi=0.12, tokens_lo=3000, tokens_hi=9000,
-                latency_lo=3000, latency_hi=9000,
+                rng,
+                "reviewer",
+                _MODEL_QUICK,
+                cost_lo=0.03,
+                cost_hi=0.12,
+                tokens_lo=3000,
+                tokens_hi=9000,
+                latency_lo=3000,
+                latency_hi=9000,
             )
         )
     return calls
@@ -563,11 +623,14 @@ def _filename_for(rng: random.Random, doc_key: str, created_at: datetime) -> str
     stem = rng.choice(info["stems"])
     company = rng.choice(_COMPANIES).replace(" ", "")
     return (
-        stem.format(co=company, n=rng.randint(1, 6), ym=created_at.strftime("%Y-%m")) + ".docx"
+        stem.format(co=company, n=rng.randint(1, 6), ym=created_at.strftime("%Y-%m"))
+        + ".docx"
     )
 
 
-def _build_review_result(rng: random.Random, doc_key: str, mode: str, tier: str) -> ReviewResult:
+def _build_review_result(
+    rng: random.Random, doc_key: str, mode: str, tier: str
+) -> ReviewResult:
     info = _DOC_TYPE_INFO[doc_key]
     pool_findings = _findings_for_tier(rng, tier)
     findings = [
@@ -591,7 +654,11 @@ def _build_review_result(rng: random.Random, doc_key: str, mode: str, tier: str)
         "medium": sum(1 for f in findings if f.severity == "medium"),
         "low": sum(1 for f in findings if f.severity == "low"),
     }
-    adherence_bands = {"green": (82.0, 97.0), "yellow": (55.0, 81.0), "red": (18.0, 54.0)}
+    adherence_bands = {
+        "green": (82.0, 97.0),
+        "yellow": (55.0, 81.0),
+        "red": (18.0, 54.0),
+    }
     lo, hi = adherence_bands[tier]
     summary = (
         f"{info['doc_type'].replace('_', ' ').title()} reviewed against the standard playbook "
@@ -612,16 +679,22 @@ def _build_review_result(rng: random.Random, doc_key: str, mode: str, tier: str)
     )
 
 
-def _backdate(db: DbSession, review: Review, created_at: datetime, duration_ms: int) -> None:
+def _backdate(
+    db: DbSession, review: Review, created_at: datetime, duration_ms: int
+) -> None:
     """Set ``finished_at``/each ``llm_calls.created_at`` to line up with the backdated
     ``created_at`` (already baked into ``review.result_json`` by the time this runs)."""
     review.finished_at = created_at + timedelta(milliseconds=duration_ms)
-    for call in db.execute(select(LlmCall).where(LlmCall.review_id == review.id)).scalars():
+    for call in db.execute(
+        select(LlmCall).where(LlmCall.review_id == review.id)
+    ).scalars():
         call.created_at = created_at
     db.commit()
 
 
-def seed_reviews(db: DbSession, rng: random.Random, now_utc: datetime | None = None) -> int:
+def seed_reviews(
+    db: DbSession, rng: random.Random, now_utc: datetime | None = None
+) -> int:
     """Seed ~140 reviews + their ``llm_calls`` (plan §4.6). A no-op (returns 0) whenever the
     ``reviews`` table is already non-empty — this table-emptiness check is the whole idempotency
     story: a second run of ``seed_demo`` creates nothing further."""
@@ -636,7 +709,9 @@ def seed_reviews(db: DbSession, rng: random.Random, now_utc: datetime | None = N
         ).scalars()
     }
     activity_weights = [
-        (users[uname], weight) for uname, weight in _ACTIVITY_WEIGHTS.items() if uname in users
+        (users[uname], weight)
+        for uname, weight in _ACTIVITY_WEIGHTS.items()
+        if uname in users
     ]
     if not activity_weights:
         return 0
@@ -655,13 +730,21 @@ def seed_reviews(db: DbSession, rng: random.Random, now_utc: datetime | None = N
         review = reviews_repo.create_review(
             db, user, filename=filename, mode=mode, our_side="", status="running"
         )
-        review.created_at = created_at  # backdated BEFORE complete_review bakes it into result_json
+        review.created_at = (
+            created_at  # backdated BEFORE complete_review bakes it into result_json
+        )
         db.flush()
 
         if i < _FAILED_REVIEW_COUNT:
-            calls = _calls_for(rng, mode)[:1]  # only the classifier call ran before it failed
+            calls = _calls_for(rng, mode)[
+                :1
+            ]  # only the classifier call ran before it failed
             reviews_repo.fail_review(
-                db, review, rng.choice(_FAILURE_CODES), duration_ms=duration_ms, calls=calls
+                db,
+                review,
+                rng.choice(_FAILURE_CODES),
+                duration_ms=duration_ms,
+                calls=calls,
             )
         else:
             tier = _weighted_choice(rng, _RISK_TIER_WEIGHTS)
@@ -695,7 +778,9 @@ def run(*, reset: bool = False) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Seed Legal Helper demo data.")
     parser.add_argument(
-        "--reset", action="store_true", help="Truncate reviews/llm_calls and reseed them."
+        "--reset",
+        action="store_true",
+        help="Truncate reviews/llm_calls and reseed them.",
     )
     args = parser.parse_args()
     run(reset=args.reset)

@@ -10,8 +10,8 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session as DbSession
 
-from ..ai.ledger import LlmCallRecord
 from ..agents.orchestrator import ReviewResult
+from ..ai.ledger import LlmCallRecord
 from ..models import LlmCall, Review, User
 
 
@@ -185,14 +185,19 @@ def usage_for_user(db: DbSession, user: User, *, since: datetime | None = None) 
         day=1, hour=0, minute=0, second=0, microsecond=0
     )
     row = db.execute(
-        select(func.count(Review.id), func.coalesce(func.sum(Review.cost_usd), 0.0)).where(
+        select(
+            func.count(Review.id), func.coalesce(func.sum(Review.cost_usd), 0.0)
+        ).where(
             Review.user_id == user.id,
             Review.created_at >= since,
             Review.status == "done",
         )
     ).one()
     count, cost = row
-    return {"reviews_this_month": int(count), "cost_this_month_usd": round(float(cost), 6)}
+    return {
+        "reviews_this_month": int(count),
+        "cost_this_month_usd": round(float(cost), 6),
+    }
 
 
 def stale_job_cutoff(minutes: int = 15) -> datetime:

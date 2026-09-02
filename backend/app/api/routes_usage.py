@@ -32,9 +32,9 @@ def _month_start(now: datetime | None = None) -> datetime:
 def _count_and_cost(db: DbSession, *clauses) -> tuple[int, float]:
     """One ``(count, sum(cost_usd))`` query over ``reviews``, filtered by ``clauses``."""
     count, cost = db.execute(
-        select(func.count(Review.id), func.coalesce(func.sum(Review.cost_usd), 0.0)).where(
-            *clauses
-        )
+        select(
+            func.count(Review.id), func.coalesce(func.sum(Review.cost_usd), 0.0)
+        ).where(*clauses)
     ).one()
     return int(count), round(float(cost), 6)
 
@@ -67,7 +67,9 @@ def get_my_usage(
 
     by_mode = {}
     for mode in ("quick", "deep"):
-        n, cost = _count_and_cost(db, Review.user_id == user.id, done, Review.mode == mode)
+        n, cost = _count_and_cost(
+            db, Review.user_id == user.id, done, Review.mode == mode
+        )
         by_mode[mode] = {"n": n, "cost_usd": cost}
 
     by_model = [
@@ -100,7 +102,9 @@ def get_my_usage(
 
     monthly_cap = settings.max_monthly_cost_usd
     remaining_usd = (
-        round(max(0.0, monthly_cap - cost_this_month_usd), 6) if monthly_cap > 0 else None
+        round(max(0.0, monthly_cap - cost_this_month_usd), 6)
+        if monthly_cap > 0
+        else None
     )
 
     return {

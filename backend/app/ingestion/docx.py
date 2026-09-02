@@ -184,7 +184,9 @@ def _extract(document, *, source_path: str) -> ParsedDocument:
 
     full_text = "\n".join(text_lines)
     if not full_text.strip():
-        raise ValueError(f"No extractable text in docx file: {source_path or '<upload>'}")
+        raise ValueError(
+            f"No extractable text in docx file: {source_path or '<upload>'}"
+        )
     return ParsedDocument(
         full_text=full_text,
         blocks=blocks,

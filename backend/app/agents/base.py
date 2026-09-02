@@ -12,7 +12,13 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 
-from app.ai.gateway import Gateway, GatewayRequest, ProviderError, Result, error_code_for
+from app.ai.gateway import (
+    Gateway,
+    GatewayRequest,
+    ProviderError,
+    Result,
+    error_code_for,
+)
 from app.ai.ledger import LlmCallRecord, current_ledger
 
 
@@ -20,7 +26,9 @@ from app.ai.ledger import LlmCallRecord, current_ledger
 class Agent:
     name: str  # "classifier" | "reviewer" | "coverage"
     system: str  # the prompt
-    schema: dict  # JSON schema for response_format (portable subset, asserted at import)
+    schema: (
+        dict  # JSON schema for response_format (portable subset, asserted at import)
+    )
     effort: str = "medium"  # "min" | "low" | "medium" | "high" | "max"
     max_tokens: int = 4096
 

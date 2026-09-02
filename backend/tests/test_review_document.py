@@ -78,7 +78,9 @@ def test_no_stored_document_is_404(client, seed_user, login, db):
     from app.models import Review
 
     owner = seed_user(username="alice.tan", password="correct horse")
-    review = Review(user_id=owner.id, filename="No_Doc.docx", mode="quick", status="done")
+    review = Review(
+        user_id=owner.id, filename="No_Doc.docx", mode="quick", status="done"
+    )
     db.add(review)
     db.commit()
     db.refresh(review)

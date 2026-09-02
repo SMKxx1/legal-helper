@@ -23,7 +23,11 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 
-from app.agents.classifier import UNKNOWN_CLASSIFICATION, ClassifierResult, run_classifier
+from app.agents.classifier import (
+    UNKNOWN_CLASSIFICATION,
+    ClassifierResult,
+    run_classifier,
+)
 from app.agents.coverage import CoverageItemResult, run_coverage
 from app.agents.reviewer import merge_findings, run_reviewer
 from app.ai.gateway import Gateway, ProviderError, error_code_for
@@ -61,7 +65,9 @@ def _default_models() -> ModelChoice:
     )
 
 
-def _make_gateway(model: str, api_key: str, *, provider_only: tuple[str, ...] = ()) -> Gateway:
+def _make_gateway(
+    model: str, api_key: str, *, provider_only: tuple[str, ...] = ()
+) -> Gateway:
     adapter = OpenRouterAdapter(
         api_key,
         model,
@@ -178,7 +184,10 @@ def _coverage_report(items: list[CoverageItemResult], text: str) -> CoverageRepo
         checked.append(item.clause_type)
         if item.status == "absent":
             absent.append(
-                {"clause_type": item.clause_type, "note": item.note or "Clause not found."}
+                {
+                    "clause_type": item.clause_type,
+                    "note": item.note or "Clause not found.",
+                }
             )
             continue
         # "present" but the cited span isn't actually in the document -> treat as unverified,
@@ -207,9 +216,13 @@ def _risk_tier(findings: list[Finding], coverage: CoverageReport | None) -> str:
     return "green"
 
 
-def _adherence_score(findings: list[Finding], coverage: CoverageReport | None, doc_len: int) -> float:
+def _adherence_score(
+    findings: list[Finding], coverage: CoverageReport | None, doc_len: int
+) -> float:
     penalty = sum(_SEVERITY_WEIGHT.get(f.severity, 0.5) for f in findings)
-    penalty += _ABSENT_REQUIRED_PENALTY * len(coverage.absent_required if coverage else [])
+    penalty += _ABSENT_REQUIRED_PENALTY * len(
+        coverage.absent_required if coverage else []
+    )
     expected_clauses = max(1, round(doc_len / _CHARS_PER_EXPECTED_CLAUSE))
     denom = max(expected_clauses, len(findings), 1)
     score = 100.0 - (penalty / denom) * _ADHERENCE_PENALTY_SCALE
@@ -251,7 +264,9 @@ def run_review(
         # 2. reviewer ‖ coverage — parallel fan-out, usage ledger follows the worker threads.
         reviewer_model = models.deep if deep else models.quick
         reviewer_provider_only = deep_provider_only if deep else ()
-        reviewer_gw = _make_gateway(reviewer_model, api_key, provider_only=reviewer_provider_only)
+        reviewer_gw = _make_gateway(
+            reviewer_model, api_key, provider_only=reviewer_provider_only
+        )
 
         def _run_reviewer() -> list[dict]:
             return run_reviewer(
@@ -274,7 +289,9 @@ def run_review(
             with ThreadPoolExecutor(max_workers=2) as ex:
                 reviewer_future = ex.submit(_ctx_copy(_run_reviewer))
                 coverage_future = ex.submit(_ctx_copy(_run_coverage))
-                raw_findings = reviewer_future.result()  # fail-closed: exception propagates
+                raw_findings = (
+                    reviewer_future.result()
+                )  # fail-closed: exception propagates
                 try:
                     coverage_items = coverage_future.result()
                 except ProviderError as exc:
@@ -286,9 +303,15 @@ def run_review(
         # 3. deterministic merge (no LLM).
         findings = _build_findings(raw_findings, text)
         findings = _dedupe(findings)
-        for i, f in enumerate(findings, start=1):  # renumber 1..N after dedupe drops entries
+        for i, f in enumerate(
+            findings, start=1
+        ):  # renumber 1..N after dedupe drops entries
             f.id = i
-        coverage = _coverage_report(coverage_items, text) if coverage_items is not None else None
+        coverage = (
+            _coverage_report(coverage_items, text)
+            if coverage_items is not None
+            else None
+        )
         counts = {
             "high": sum(1 for f in findings if f.severity == "high"),
             "medium": sum(1 for f in findings if f.severity == "medium"),
@@ -316,7 +339,12 @@ def _dedupe(findings: list[Finding]) -> list[Finding]:
     """Dedupe by (clause_heading, span) via :func:`app.agents.reviewer.merge_findings`, operating
     on the already-built :class:`Finding` objects (round-tripped through dicts for that helper)."""
     dicts = [
-        {"clause_heading": f.clause_heading, "span": f.span, "title": f.title, "_orig": f}
+        {
+            "clause_heading": f.clause_heading,
+            "span": f.span,
+            "title": f.title,
+            "_orig": f,
+        }
         for f in findings
     ]
     kept = merge_findings(dicts)

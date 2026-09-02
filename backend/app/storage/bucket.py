@@ -76,7 +76,9 @@ def object_key(user_id: str, review_id: str, filename: str) -> str:
     return f"users/{user_id}/reviews/{review_id}/{safe_filename(filename)}"
 
 
-def put_document(user_id: str, review_id: str, filename: str, data: bytes) -> str | None:
+def put_document(
+    user_id: str, review_id: str, filename: str, data: bytes
+) -> str | None:
     """Upload the original ``.docx``. Returns the object key on success, ``None`` if the bucket is
     disabled OR the upload failed (logged either way the caller can distinguish by calling
     :func:`enabled` first — see ``routes_reviews._store_document``)."""
@@ -119,7 +121,9 @@ def delete_object(key: str | None) -> None:
         log.warning("bucket.delete_failed", key=key, error=str(exc))
 
 
-def enforce_retention(db: DbSession, user_id: str, *, max_docs: int | None = None) -> None:
+def enforce_retention(
+    db: DbSession, user_id: str, *, max_docs: int | None = None
+) -> None:
     """Retention cap (plan §4.5): once ``user_id`` has more than ``max_docs`` (default
     ``MAX_DOCS_PER_USER``) stored objects, delete the oldest beyond the cap and null their
     ``doc_object_key`` — the review ROW stays (it still counts for stats), only the archived

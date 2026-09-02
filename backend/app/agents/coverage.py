@@ -13,9 +13,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.ai.gateway import Gateway, fence_document
 from app.agents.base import Agent, run
 from app.agents.schemas import COVERAGE_SCHEMA
+from app.ai.gateway import Gateway, fence_document
 from app.playbook.loader import Playbook, required_checklist
 
 COVERAGE_SYSTEM = (
@@ -59,7 +59,9 @@ def run_coverage(
     if not checklist:
         return []
     agent = build_coverage_agent()
-    items_block = "\n".join(f"- {p.clause_type}: {p.standard_position}" for p in checklist)
+    items_block = "\n".join(
+        f"- {p.clause_type}: {p.standard_position}" for p in checklist
+    )
     task = (
         "CHECKLIST (answer every item, in this order):\n" + items_block + "\n\n"
         "DOCUMENT:\n<document>\n" + fence_document(full_text) + "\n</document>"
@@ -71,9 +73,7 @@ def run_coverage(
         stable_blocks=[playbook_block],
         cache_key_parts=(playbook.version,),
     )
-    by_type = {
-        str(r.get("clause_type")): r for r in (result.obj.get("results") or [])
-    }
+    by_type = {str(r.get("clause_type")): r for r in (result.obj.get("results") or [])}
     out: list[CoverageItemResult] = []
     for pos in checklist:
         r = by_type.get(pos.clause_type)
