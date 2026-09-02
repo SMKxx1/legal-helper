@@ -5,9 +5,9 @@ is logged) -> exception handlers -> middleware (correlation-id) -> routers -> sh
 a catch-all default-deny 404 (registered LAST). It must boot with ZERO env vars set; missing
 configuration only disables capabilities.
 
-Routers mounted so far: the Word add-in static bundle, ``/api/auth`` and ``/api/me`` (Phase 1).
-Later phases add ``/api/reviews``, ``/api/me/usage`` and ``/api/admin/usage`` as they are written —
-this file's job is the fixed shell around them, not the routes themselves.
+Routers mounted so far: the Word add-in static bundle, ``/api/auth`` and ``/api/me`` (Phase 1),
+``/api/reviews`` (Phase 2). Later phases add ``/api/me/usage`` and ``/api/admin/usage`` — this
+file's job is the fixed shell around them, not the routes themselves.
 
 Routes:
 * ``GET /healthz`` — shallow public liveness (200 ``{"status":"ok"}`` / 503). No capability detail
@@ -26,11 +26,11 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
 
-from .api import routes_addin, routes_auth, routes_me
+from .api import reviews_repo, routes_addin, routes_auth, routes_me, routes_reviews
 from .api.errors import EngineError, engine_error_handler
 from .capabilities import CapabilityRegistry, build_registry
 from .config import Settings, get_settings
-from .db import init_db
+from .db import SessionLocal, init_db
 from .telemetry import CorrelationIdMiddleware, configure_logging, get_logger
 
 _ALL_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"]
@@ -75,6 +75,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # Runs each capability's health probe (today: `database` checks APP_SECRET_KEY in prod) so
         # /healthz reflects real boot-time health, not just config presence.
         await registry.run_probes()
+        # Crash recovery (plan §3): a process restart mid-review leaves its row stuck at
+        # queued/running forever — the add-in would poll it indefinitely. Fail anything stale.
+        with SessionLocal() as db:
+            stale = reviews_repo.fail_stale_jobs(db)
+            if stale:
+                log.warning("reviews.stale_jobs_failed", count=stale)
         yield
 
     # OpenAPI/docs stay disabled (default-deny; this is a teaching demo backend, not a public API
@@ -162,6 +168,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     routes_addin.register(app)
     app.include_router(routes_auth.router)
     app.include_router(routes_me.router)
+    app.include_router(routes_reviews.router)
 
     @app.get("/healthz")
     async def healthz() -> JSONResponse:

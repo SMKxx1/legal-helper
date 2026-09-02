@@ -1,26 +1,28 @@
 "use strict";
 
-// Unit tests for the add-in's ASYNC deep-review transport helpers (PLAN §3.1): deep mode submits
-// async (202 + job id) and polls GET /v1/reviews/jobs/{id} to completion, because a deep review can
-// outlast the platform's ingress request timeout. These cover the PURE pieces — response-shape
-// validation, poll backoff, and job-status interpretation — with NO network / Office.js / DOM, so
-// they run under `node --test` (Node 18+, built-in runner — no dependencies) like the redline tests.
+// Unit tests for the add-in's ASYNC deep-review transport helpers (plan §4.2): deep mode submits
+// async (POST /api/reviews -> 202 + id) and polls GET /api/reviews/{id} to completion, because a
+// deep review can outlast a typical ingress request timeout. These cover the PURE pieces —
+// response-shape validation, poll backoff, and status interpretation — with NO network / Office.js
+// / DOM, so they run under `node --test` (Node 18+, built-in runner — no dependencies) like the
+// redline tests.
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 
 const { isReviewBody, parseJsonSafe, nextPollDelayMs, jobOutcome } = require("../taskpane.js");
 
-test("isReviewBody accepts a well-formed review and rejects malformed ones", () => {
-  const ok = { review_id: "abc", findings: [], coverage: { absent_required: [] } };
+test("isReviewBody accepts a finished review and rejects malformed ones", () => {
+  const ok = { id: "abc", status: "done", findings: [], coverage: null };
   assert.equal(isReviewBody(ok), true);
-  // missing review_id
-  assert.equal(isReviewBody({ findings: [], coverage: {} }), false);
+  // missing id
+  assert.equal(isReviewBody({ status: "done", findings: [] }), false);
+  // not yet done (a bare status poll, still queued/running)
+  assert.equal(isReviewBody({ id: "x", status: "running" }), false);
   // findings not an array
-  assert.equal(isReviewBody({ review_id: "x", findings: "no", coverage: {} }), false);
-  // missing / non-object coverage
-  assert.equal(isReviewBody({ review_id: "x", findings: [] }), false);
-  assert.equal(isReviewBody({ review_id: "x", findings: [], coverage: null }), false);
+  assert.equal(isReviewBody({ id: "x", status: "done", findings: "no" }), false);
+  // missing findings entirely
+  assert.equal(isReviewBody({ id: "x", status: "done" }), false);
   // null / non-object
   assert.equal(isReviewBody(null), false);
   assert.equal(isReviewBody("nope"), false);
@@ -46,19 +48,19 @@ test("nextPollDelayMs backs off monotonically and caps at 5s", () => {
   assert.equal(nextPollDelayMs(-3), nextPollDelayMs(0));
 });
 
-test("jobOutcome walks pending -> running -> done|failed and inlines the review when done", () => {
-  const review = { review_id: "r1", findings: [], coverage: {} };
-  assert.deepEqual(jobOutcome({ status: "done", review }), { state: "done", review });
-  // done but the review hasn't been inlined yet -> review null (caller then rejects the shape)
-  assert.deepEqual(jobOutcome({ status: "done" }), { state: "done", review: null });
-  // failed carries the sanitized error string
-  assert.deepEqual(jobOutcome({ status: "failed", error: "RuntimeError" }), {
+test("jobOutcome walks queued -> running -> done|failed; a 'done' poll IS the review", () => {
+  const done = { id: "r1", status: "done", findings: [], coverage: null };
+  assert.deepEqual(jobOutcome(done), { state: "done", review: done });
+  // done but malformed (e.g. findings missing) -> review null, caller then rejects the shape
+  assert.deepEqual(jobOutcome({ id: "r1", status: "done" }), { state: "done", review: null });
+  // failed carries the sanitized error code
+  assert.deepEqual(jobOutcome({ id: "r1", status: "failed", error: "no_zdr_route" }), {
     state: "failed",
-    error: "RuntimeError",
+    error: "no_zdr_route",
   });
-  // pending / running / unknown all read as "keep polling"; case-insensitive
-  assert.deepEqual(jobOutcome({ status: "pending" }), { state: "pending" });
-  assert.deepEqual(jobOutcome({ status: "RUNNING" }), { state: "pending" });
-  assert.deepEqual(jobOutcome({ status: "" }), { state: "pending" });
+  // queued / running / unknown all read as "keep polling"; case-insensitive
+  assert.deepEqual(jobOutcome({ id: "r1", status: "queued" }), { state: "pending" });
+  assert.deepEqual(jobOutcome({ id: "r1", status: "RUNNING" }), { state: "pending" });
+  assert.deepEqual(jobOutcome({ id: "r1", status: "" }), { state: "pending" });
   assert.deepEqual(jobOutcome(null), { state: "pending" });
 });

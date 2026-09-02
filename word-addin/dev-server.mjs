@@ -69,4 +69,4 @@ server.on('error', (err) => {
 });
 
 server.listen(PORT, () => console.log(
-  `Word add-in: https://localhost:${PORT}  (serving ${ROOT}  +  proxy /v1,/api,/healthz -> ${BACKEND_HOST}:${BACKEND_PORT})`));
+  `Word add-in: https://localhost:${PORT}  (serving ${ROOT}  +  proxy /api,/healthz,/manifest.xml -> ${BACKEND_HOST}:${BACKEND_PORT})`));

@@ -1,25 +1,22 @@
-"""Provider boundary — the one place that knows the Anthropic (Claude) API specifics.
+"""Provider-neutral gateway — everything above ``ai/openrouter.py`` that doesn't need to know
+OpenRouter's wire format.
 
-Everything above this layer is provider-neutral: it hands the gateway a role, a
-portable schema (``engine.portable_schema``), a stable→volatile set of prompt
-blocks, and a neutral ``effort``. The gateway maps that onto the active adapter,
-enforces the prompt-caching ordering, runs the retry/fallback policy, validates
-the structured output, and records metrics.
+An agent (``app.agents.base``) hands the gateway a role, a portable schema
+(``engine.portable_schema``), a stable→volatile set of prompt blocks, and a neutral ``effort``.
+The gateway runs the retry ladder against the adapter (``OpenRouterAdapter``, the only thing that
+knows the wire format), enforces a circuit breaker per (mode, model), validates the structured
+output, and serves a small in-process response cache.
 
-Design rules realized here (the engine overview lives in ``docs/ARCHITECTURE.md``):
-- one shared schema → Claude ``output_config.format`` json_schema; never
-  send ``temperature``;
-- stable content first so Claude's ``cache_control`` breakpoint hits the same
-  prefix across calls;
-- effort: neutral ``low|medium|high`` (+ ``min``/``max`` extremes) → the provider's
-  native knob;
-- **observable degradation** (P1-3): retryable vs terminal errors; heuristic
-  fallback only at the orchestrator boundary; ``fallback_used`` metric; in
-  ``eval_mode`` a failure raises instead of silently degrading.
+Design rules realized here:
+- stable content first so the adapter's prompt-cache breakpoint hits the same prefix across calls;
+- effort: neutral ``low|medium|high`` (+ ``min``/``max`` extremes) → the adapter's native knob;
+- **observable degradation**: retryable vs terminal errors; an optional caller-supplied fallback
+  only at the call site; ``fallback_used`` metric; in ``eval_mode`` a failure raises instead of
+  silently degrading.
 
-The request *builder* and the orchestration policy are fully unit-tested with a
-fake adapter; the live Anthropic ``complete()`` path wraps the SDK and is
-exercised by integration tests, not unit tests (no API spend here).
+The request/response contract is fully unit-tested with a fake adapter (``ScriptedAdapter`` in
+``tests/test_gateway_breaker.py``); the live OpenRouter ``complete()`` path is exercised with
+``httpx.MockTransport`` in ``tests/test_openrouter_adapter.py`` (no API spend in tests).
 """
 
 from __future__ import annotations
@@ -29,13 +26,12 @@ import json
 import re
 import threading
 import time
-import weakref
 from collections import OrderedDict, deque
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from typing import Protocol
 
-from app.ai.usage_ledger import current_ledger
+from app.ai.ledger import current_ledger
 from app.engine.portable_schema import assert_portable
 
 
@@ -58,18 +54,48 @@ class SchemaValidationError(TerminalProviderError):
     """Model output did not satisfy the (portable) schema's structural contract."""
 
 
+class NoZdrRouteError(TerminalProviderError):
+    """OpenRouter answered 404 "no endpoints" — no route satisfies the ZDR/provider preferences
+    (plan §6, fail-closed). There is deliberately no code path that drops those preferences to
+    obtain a response anyway; this is the error, not a silent downgrade. Maps to review error
+    code ``no_zdr_route`` (:func:`error_code_for`)."""
+
+
+class InsufficientCreditsError(TerminalProviderError):
+    """OpenRouter answered 402 — the user's key is out of credits. Maps to ``insufficient_credits``."""
+
+
+class RateLimitedError(RetryableProviderError):
+    """OpenRouter answered 429 after the retry ladder was exhausted. Maps to ``rate_limited``."""
+
+
+#: Exception type -> the stable error code the review pipeline surfaces to the client (plan §4.2:
+#: "the review is failed with the provider error code"). Checked most-specific first; anything not
+#: listed here falls back to a message-based guess (timeout) or a generic ``provider_error``.
+_ERROR_CODES: tuple[tuple[type[Exception], str], ...] = (
+    (NoZdrRouteError, "no_zdr_route"),
+    (InsufficientCreditsError, "insufficient_credits"),
+    (RateLimitedError, "rate_limited"),
+)
+
+
+def error_code_for(exc: Exception) -> str:
+    """A stable, client-facing error code for a failed provider call — persisted on
+    ``reviews.error`` and returned to the add-in. Never leaks a raw exception message."""
+    for exc_type, code in _ERROR_CODES:
+        if isinstance(exc, exc_type):
+            return code
+    if isinstance(exc, ProviderError) and "timeout" in str(exc).lower():
+        return "timeout"
+    if isinstance(exc, ProviderError):
+        return "provider_error"
+    return "internal_error"
+
+
 # --------------------------------------------------------------------------- #
 # Neutral request / result
 # --------------------------------------------------------------------------- #
 EFFORTS = ("min", "low", "medium", "high", "max")
-
-_ANTHROPIC_EFFORT = {
-    "min": "low",
-    "low": "low",
-    "medium": "medium",
-    "high": "high",
-    "max": "max",
-}
 
 
 @dataclass
@@ -116,51 +142,6 @@ class Result:
     provider: str
     fallback_used: bool
     raw_text: str
-
-
-def map_effort(provider: str, effort: str) -> str:
-    if effort not in EFFORTS:
-        raise ValueError(f"unknown effort {effort!r}; expected one of {EFFORTS}")
-    if provider == "anthropic":
-        return _ANTHROPIC_EFFORT[effort]
-    raise ValueError(f"unknown provider {provider!r}")
-
-
-# --------------------------------------------------------------------------- #
-# Request builders (pure, testable) — the actual provider wiring
-# --------------------------------------------------------------------------- #
-def build_anthropic_request(
-    req: GatewayRequest,
-    model: str,
-    *,
-    include_effort: bool = True,
-    cache_ttl: str = "5m",
-) -> dict:
-    """Claude Messages request: stable prefix in `system` with one cache breakpoint,
-    task as the user turn, schema via `output_config.format`, no temperature.
-
-    ``include_effort`` must be False for models that reject the effort param
-    (Haiku 4.5, Sonnet 4.5 and older) — the adapter sets it from the model id.
-    ``cache_ttl``: "5m" (the provider default — the ttl field is OMITTED so the request
-    bytes are identical to before this option existed) or "1h" (explicit extended TTL;
-    2x write cost — the adapter's pricing call must be told the same TTL)."""
-    system_blocks: list[dict] = [{"type": "text", "text": req.system}]
-    for b in req.stable_blocks:
-        system_blocks.append({"type": "text", "text": b})
-    cache_control: dict = {"type": "ephemeral"}  # ≤4 breakpoints; 1 here
-    if cache_ttl == "1h":
-        cache_control["ttl"] = "1h"
-    system_blocks[-1]["cache_control"] = cache_control
-    output_config: dict = {"format": {"type": "json_schema", "schema": req.schema}}
-    if include_effort:
-        output_config["effort"] = map_effort("anthropic", req.effort)
-    return {
-        "model": model,
-        "max_tokens": req.max_tokens,
-        "system": system_blocks,
-        "messages": [{"role": "user", "content": req.task}],
-        "output_config": output_config,
-    }
 
 
 # --------------------------------------------------------------------------- #
@@ -309,33 +290,6 @@ def _validate_required(obj: dict, schema: dict) -> None:
 BREAKER_THRESHOLD = 5
 BREAKER_COOLDOWN_S = 30.0
 
-#: Live gateways, for the non-gating /healthz provider field (weak: test instances vanish).
-_GATEWAYS: weakref.WeakSet = weakref.WeakSet()
-
-
-def provider_health(window_s: float = 300.0) -> dict:
-    """Aggregate provider health across live gateways for the /healthz BODY (never the status
-    code — a provider outage must not restart a container whose DB is fine). ``degraded`` when
-    any breaker is open or the windowed fallback rate is elevated; per-replica state."""
-    open_models: list[str] = []
-    recent_fallbacks = 0
-    breaker_opens = 0
-    for gw in list(_GATEWAYS):
-        try:
-            if gw.breaker_is_open():
-                open_models.append(gw.adapter.model_id)
-            recent_fallbacks += gw.metrics.count_recent("fallback_used", window_s)
-            breaker_opens += gw.metrics.count_recent("breaker_open", window_s)
-        except Exception:  # noqa: BLE001 — health reporting must never take down /healthz
-            continue
-    degraded = bool(open_models) or recent_fallbacks >= 3
-    return {
-        "status": "degraded" if degraded else "ok",
-        "breakers_open": sorted(set(open_models)),
-        "recent_fallbacks": recent_fallbacks,
-        "recent_breaker_opens": breaker_opens,
-    }
-
 
 class Gateway:
     def __init__(
@@ -349,11 +303,12 @@ class Gateway:
         self.adapter = adapter
         self.cache = cache or InMemoryResponseCache()
         self.metrics = metrics or Metrics()
-        # Monotonic token usage across this gateway's real provider calls. Gateways are
-        # lru-cached and SHARED across reviews, so these counters accumulate process-wide —
-        # lifetime diagnostics only. Per-review attribution does NOT read them (a shared-
-        # counter delta absorbs concurrent reviews' calls); it uses the request-scoped
-        # ledger (app.ai.usage_ledger.track_usage), fed in run() alongside these counters.
+        # Monotonic token usage across this gateway's real provider calls — lifetime diagnostics
+        # only (a fresh Gateway is built per (agent, model) per review — see
+        # app.agents.orchestrator._make_gateway — so these counters aren't shared across reviews,
+        # but per-review attribution still goes through the request-scoped ledger
+        # (app.ai.ledger.track_usage / app.agents.base.run), not these counters, since a repair
+        # round-trip and cache hits need different accounting than a raw counter bump gives).
         # Cache read/write tokens are counted separately: they are BILLED (0.1x / 1.25-2x)
         # but were previously invisible in the counters even though cost_usd included them.
         self.usage_input_tokens = 0
@@ -374,7 +329,6 @@ class Gateway:
         self._open_until = 0.0
         self._probe_in_flight = False
         self._clock = time.monotonic  # patchable in tests
-        _GATEWAYS.add(self)
 
     # -- breaker state ---------------------------------------------------- #
     def breaker_is_open(self) -> bool:

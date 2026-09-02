@@ -1,0 +1,89 @@
+{
+  "version": "lh-1",
+  "positions": [
+    {
+      "clause_type": "confidentiality",
+      "presence": "required",
+      "risk_weight": 3,
+      "standard_position": "Mutual obligations; confidential information defined by marking or a reasonable-person test; standard carve-outs (already public, already known, independently developed, rightfully received from a third party, compelled by law).",
+      "walk_away": "Perpetual obligations on information that is not a trade secret, or no carve-outs at all."
+    },
+    {
+      "clause_type": "term_and_termination",
+      "presence": "required",
+      "risk_weight": 2,
+      "standard_position": "A fixed term (typically 1-3 years) with confidentiality obligations surviving termination for a further 1-3 years (perpetual survival only for trade secrets); either party may terminate for convenience on reasonable notice.",
+      "walk_away": "No termination right for either party, or a survival period longer than 5 years on non-trade-secret information."
+    },
+    {
+      "clause_type": "limitation_of_liability",
+      "presence": "required",
+      "risk_weight": 3,
+      "standard_position": "A liability cap (e.g. fees paid in the prior 12 months, or a fixed amount) applying to both parties equally, with the usual carve-outs (confidentiality breach, gross negligence, willful misconduct, IP infringement) and a mutual exclusion of indirect/consequential damages.",
+      "walk_away": "Uncapped liability on our side, a one-sided cap that only protects the counterparty, or no exclusion of consequential damages."
+    },
+    {
+      "clause_type": "indemnification",
+      "presence": "expected",
+      "risk_weight": 3,
+      "standard_position": "Mutual indemnification for third-party claims arising from a breach of the agreement, IP infringement, or a party's negligence; indemnification obligations are subject to the same liability cap and notice/cooperation procedure.",
+      "walk_away": "One-sided indemnification running only against our side, or indemnification obligations carved out of the liability cap (uncapped exposure)."
+    },
+    {
+      "clause_type": "intellectual_property",
+      "presence": "expected",
+      "risk_weight": 2,
+      "standard_position": "Each party retains ownership of its own pre-existing IP; no license is granted except as expressly needed to perform the agreement; any jointly developed IP is addressed explicitly (joint ownership or an agreed assignment with fair compensation).",
+      "walk_away": "A broad, perpetual, royalty-free license (or assignment) of our IP granted to the counterparty beyond what is needed to perform the agreement."
+    },
+    {
+      "clause_type": "governing_law_and_disputes",
+      "presence": "required",
+      "risk_weight": 1,
+      "standard_position": "A named governing law and a clear dispute-resolution mechanism (courts of a specified jurisdiction, or arbitration with a named seat and rules) that is convenient and neutral for both parties.",
+      "walk_away": "No governing law specified at all, or exclusive jurisdiction/arbitration seated somewhere that makes enforcement impractical for our side."
+    },
+    {
+      "clause_type": "payment_terms",
+      "presence": "optional",
+      "risk_weight": 2,
+      "standard_position": "Clear pricing, invoicing cadence, and payment due dates (typically net 30); a reasonable, capped late-payment interest rate; a defined process for disputing an invoice in good faith.",
+      "walk_away": "Payment due on receipt with no dispute process, or an uncapped/punitive late-payment interest rate."
+    },
+    {
+      "clause_type": "assignment",
+      "presence": "expected",
+      "risk_weight": 1,
+      "standard_position": "Neither party may assign the agreement without the other's consent (not to be unreasonably withheld), except to an affiliate or in connection with a merger, acquisition, or sale of substantially all assets.",
+      "walk_away": "The counterparty may freely assign the agreement to anyone (including a competitor) without our consent or notice."
+    },
+    {
+      "clause_type": "non_solicit_non_compete",
+      "presence": "optional",
+      "risk_weight": 2,
+      "standard_position": "If present at all, a narrow, mutual non-solicitation of employees for a limited period (typically 12 months) with a standard carve-out for general job postings and unsolicited applications; no non-compete.",
+      "walk_away": "A one-sided non-solicit binding only our side, a term longer than 24 months, or any non-compete restricting our side's business activities."
+    },
+    {
+      "clause_type": "data_protection",
+      "presence": "expected",
+      "risk_weight": 2,
+      "standard_position": "Each party will comply with applicable data protection law for any personal data processed under the agreement; where one party processes personal data on the other's behalf, a data processing addendum (or equivalent terms) governing purpose, security, and breach notification.",
+      "walk_away": "No data protection terms at all where the agreement clearly involves processing personal data, or no breach-notification obligation."
+    },
+    {
+      "clause_type": "warranties",
+      "presence": "expected",
+      "risk_weight": 2,
+      "standard_position": "Mutual, limited warranties (authority to enter the agreement, no conflicting obligations, compliance with law); disclaimer of implied warranties beyond those expressly given, stated in reasonably balanced terms.",
+      "walk_away": "One-sided warranties running only from our side, or an open-ended warranty of fitness for a particular purpose."
+    },
+    {
+      "clause_type": "force_majeure",
+      "presence": "optional",
+      "risk_weight": 1,
+      "standard_position": "Mutual excuse from performance (not payment already due) for events reasonably beyond a party's control, with a defined process for prolonged force majeure events (notice, and a termination right if the event continues past a set period, e.g. 60-90 days).",
+      "walk_away": "A one-sided force majeure clause excusing only the counterparty, or one broad enough to excuse ordinary business risk."
+    }
+  ]
+}

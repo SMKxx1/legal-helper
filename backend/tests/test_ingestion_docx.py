@@ -1,10 +1,8 @@
-"""Real-document parsing tests for app.ingestion.parser.
+"""Real-document parsing tests for app.ingestion.docx.
 
-The HTTP review tests only ever submit ``.txt``, so the docx/pdf extraction paths that REAL uploads
-take (``parse_document`` -> ``extract_docx`` / ``extract_pdf``) were almost entirely uncovered — a
-regression in table/nested-table/merged-cell handling or PDF text extraction would pass CI green. These
-tests build ACTUAL .docx and .pdf files on disk with python-docx / fpdf2 and parse them back, so the
-production ingestion path is exercised end to end (no mocks).
+Uploads are always ``.docx`` (plan §2.1: no PDF/OCR/LibreOffice), so this only exercises the
+production ingestion path (``parse_document`` -> ``extract_docx``) against ACTUAL .docx files
+built with python-docx (no mocks).
 """
 
 from __future__ import annotations
@@ -13,13 +11,10 @@ from pathlib import Path
 
 import pytest
 
-from app.ingestion.parser import (
-    NoTextLayerError,
+from app.ingestion.docx import (
     _detect_format,
     _looks_like_heading,
     extract_docx,
-    extract_pdf,
-    extract_text_file,
     parse_document,
 )
 
@@ -30,18 +25,16 @@ from app.ingestion.parser import (
 
 def test_detect_format_from_extension_and_explicit_override():
     assert _detect_format(Path("nda.docx"), None) == "docx"
-    assert _detect_format(Path("scan.PDF"), None) == "pdf"  # case-insensitive
-    assert _detect_format(Path("notes.markdown"), None) == "md"
     # Explicit file_format wins over (and works without) an extension.
-    assert _detect_format(Path("blob"), "txt") == "txt"
+    assert _detect_format(Path("blob"), "docx") == "docx"
     assert _detect_format(Path("blob.bin"), ".docx") == "docx"
 
 
-def test_detect_format_rejects_unknown_extension_and_bad_override():
+def test_detect_format_rejects_non_docx():
     with pytest.raises(ValueError, match="Cannot detect format"):
-        _detect_format(Path("mystery.xyz"), None)
+        _detect_format(Path("mystery.pdf"), None)
     with pytest.raises(ValueError, match="Unsupported file_format"):
-        _detect_format(Path("x.docx"), "exe")
+        _detect_format(Path("x.docx"), "pdf")
 
 
 @pytest.mark.parametrize(
@@ -78,7 +71,7 @@ def test_looks_like_heading_rejects_body_text(line):
 
 def test_parse_document_missing_file_raises(tmp_path):
     with pytest.raises(ValueError, match="File not found"):
-        parse_document(tmp_path / "nope.txt")
+        parse_document(tmp_path / "nope.docx")
 
 
 def test_parse_document_directory_is_not_a_file(tmp_path):
@@ -164,107 +157,7 @@ def test_extract_docx_preserves_paragraph_table_order(tmp_path):
     assert before < mid < after
 
 
-# --------------------------------------------------------------------------- #
-# .pdf extraction against a REAL generated PDF (text layer present)
-# --------------------------------------------------------------------------- #
-
-
-def _build_text_pdf(path: Path, body: str) -> None:
-    from fpdf import FPDF
-
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Helvetica", size=12)
-    pdf.multi_cell(0, 8, body)
-    pdf.output(str(path))
-
-
-def test_extract_pdf_reads_text_layer_with_page_numbers(tmp_path):
-    # >100 chars on the page so _looks_scanned stays False and we exercise the text path (not OCR).
-    body = (
-        "Section 1. Confidentiality. The Receiving Party shall keep the Confidential "
-        "Information secret and shall not disclose it to any third party without prior "
-        "written consent of the Disclosing Party."
-    )
-    path = tmp_path / "nda.pdf"
-    _build_text_pdf(path, body)
-
-    parsed = extract_pdf(path)
-
-    assert parsed.file_format == "pdf"
-    # Words survive extraction (line-wrapping may split phrases, so assert distinctive tokens).
-    for token in ("Confidentiality", "Receiving", "disclose", "Disclosing"):
-        assert token in parsed.full_text
-    assert parsed.blocks, "expected line blocks"
-    assert all(b.page == 1 for b in parsed.blocks)
-
-
-def test_extract_pdf_with_no_text_layer_raises_no_text_layer_error(
-    tmp_path, monkeypatch
-):
-    """A PDF with a truly empty text layer surfaces NoTextLayerError (the 'needs OCR' signal) — with
-    OCR forced unavailable so the scanned-fallback branch is skipped deterministically."""
-    import fitz
-
-    from app.ingestion import ocr
-
-    # Force the parser's scanned-detection + fallback to treat OCR as unavailable.
-    monkeypatch.setattr(ocr, "ocr_available", lambda: False)
-
-    path = tmp_path / "blank.pdf"
-    doc = fitz.open()
-    doc.new_page()  # a page with no text at all
-    doc.save(str(path))
-    doc.close()
-
-    with pytest.raises(NoTextLayerError):
-        extract_pdf(path)
-
-
-# --------------------------------------------------------------------------- #
-# .txt / .md extraction
-# --------------------------------------------------------------------------- #
-
-
-def test_extract_text_file_strips_bom_and_normalizes_markdown_heading(tmp_path):
-    path = tmp_path / "doc.md"
-    # Leading BOM + an ATX markdown heading + a body line.
-    path.write_text("﻿## Confidentiality\nThe parties agree.", encoding="utf-8")
-
-    parsed = extract_text_file(path, file_format="md")
-
-    assert parsed.file_format == "md"
-    head = parsed.blocks[0]
-    assert head.text == "Confidentiality"  # '##' stripped, BOM gone
-    assert head.is_heading is True
-    assert not parsed.full_text.startswith("﻿")  # BOM stripped at decode
-
-
-def test_extract_text_file_empty_raises(tmp_path):
-    path = tmp_path / "empty.txt"
-    path.write_text("   \n\n", encoding="utf-8")
-    with pytest.raises(ValueError, match="No extractable text"):
-        extract_text_file(path)
-
-
-# --------------------------------------------------------------------------- #
-# parse_document dispatch routes each format to the right extractor
-# --------------------------------------------------------------------------- #
-
-
-def test_parse_document_dispatches_by_format(tmp_path):
+def test_parse_document_dispatches_docx(tmp_path):
     docx_path = tmp_path / "a.docx"
     _build_docx(docx_path)
     assert parse_document(docx_path).file_format == "docx"
-
-    pdf_path = tmp_path / "a.pdf"
-    _build_text_pdf(
-        pdf_path,
-        "Section 1. The Receiving Party shall protect the Confidential Information "
-        "and shall not disclose it to any third party at any time whatsoever.",
-    )
-    assert parse_document(pdf_path).file_format == "pdf"
-
-    txt_path = tmp_path / "a.txt"
-    txt_path.write_text("Plain text NDA body.", encoding="utf-8")
-    assert parse_document(txt_path).file_format == "txt"

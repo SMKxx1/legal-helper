@@ -61,6 +61,9 @@ import httpx
 from app.ai.gateway import (
     EFFORTS,
     GatewayRequest,
+    InsufficientCreditsError,
+    NoZdrRouteError,
+    RateLimitedError,
     RawResult,
     RetryableProviderError,
     SchemaValidationError,
@@ -440,8 +443,15 @@ class OpenRouterAdapter:
         reasons = (err.get("metadata") or {}).get("reasons")
         if reasons:
             detail += f" (moderation reasons: {reasons})"
-        if resp.status_code in (408, 429) or resp.status_code >= 500:
+        if resp.status_code == 429:
+            raise RateLimitedError(detail)
+        if resp.status_code in (408,) or resp.status_code >= 500:
             raise RetryableProviderError(detail)
+        if resp.status_code == 404:
+            # No route satisfies zdr_only/provider_only — fail-closed (PLAN §6), never a downgrade.
+            raise NoZdrRouteError(detail)
+        if resp.status_code == 402:
+            raise InsufficientCreditsError(detail)
         raise TerminalProviderError(detail)
 
     @staticmethod

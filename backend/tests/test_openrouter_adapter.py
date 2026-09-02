@@ -15,6 +15,7 @@ import httpx
 import pytest
 
 from app.ai.gateway import (
+    EFFORTS,
     GatewayRequest,
     RetryableProviderError,
     SchemaValidationError,
@@ -214,6 +215,56 @@ def test_provider_pin_without_zdr_still_disables_fallbacks() -> None:
         provider_only=("anthropic",),
     )
     assert body["provider"] == {"only": ["anthropic"], "allow_fallbacks": False}
+
+
+def test_zdr_fail_closed() -> None:
+    """PLAN §6, the most important test in the repo: EVERY outgoing OpenRouter request body must
+    carry the fail-closed ZDR provider block — across every agent's model, every effort, every
+    style — with no code path that omits or waters it down while ``zdr_only`` (the adapter's
+    default) is on."""
+    seen_bodies: list[dict] = []
+    for model in (
+        "anthropic/claude-haiku-4-5",
+        "anthropic/claude-sonnet-4-6",
+        "anthropic/claude-opus-4-8",
+        "openai/gpt-5-mini",
+        "google/gemini-2.5-pro",
+    ):
+        for effort in EFFORTS:
+            seen_bodies.append(build_openrouter_request(make_req(effort=effort), model))
+    assert seen_bodies  # sanity: the matrix actually ran
+    for body in seen_bodies:
+        assert body["provider"] == {
+            "data_collection": "deny",
+            "zdr": True,
+            "allow_fallbacks": False,
+        }
+
+    # The live-call path too, not just the pure builder: complete() must send the same block.
+    handler, seen = capture([ok_body(usage={"prompt_tokens": 1, "completion_tokens": 1})])
+    make_adapter(handler).complete(make_req())
+    payload = json.loads(seen[0].content.decode())
+    assert payload["provider"]["zdr"] is True
+    assert payload["provider"]["data_collection"] == "deny"
+    assert payload["provider"]["allow_fallbacks"] is False
+
+
+def test_no_zdr_route_404_surfaces_as_stable_error_code() -> None:
+    """A 404 'no endpoints' response (no route satisfies the ZDR/provider preferences) must map to
+    the ``no_zdr_route`` error code the review pipeline surfaces to the client — never a silent
+    downgrade to a non-ZDR route."""
+    from app.ai.gateway import NoZdrRouteError, error_code_for
+
+    handler, _ = capture(
+        [
+            lambda: httpx.Response(
+                404, json={"error": {"code": 404, "message": "no endpoints found"}}
+            )
+        ]
+    )
+    with pytest.raises(NoZdrRouteError) as ei:
+        make_adapter(handler).complete(make_req())
+    assert error_code_for(ei.value) == "no_zdr_route"
 
 
 def test_strict_false_for_unvalidated_family_but_schema_still_sent() -> None:

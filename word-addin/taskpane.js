@@ -53,8 +53,11 @@ const cfg = {
   get mode() {
     return localStorage.getItem("lh.mode") || "deep";
   },
-  get scope() {
-    return localStorage.getItem("lh.scope") === "redlines" ? "redlines" : "whole";
+  get ourSide() {
+    return localStorage.getItem("lh.ourSide") || "";
+  },
+  set ourSide(v) {
+    localStorage.setItem("lh.ourSide", (v || "").trim());
   },
 };
 
@@ -260,11 +263,9 @@ if (typeof Office !== "undefined")
         "settings-signout",
         "review-section",
         "prereview",
+        "our-side",
         "depth-toggle",
         "depth-caption",
-        "scope-whole",
-        "scope-redlines",
-        "scope-caption",
         "review-btn",
         "status",
         "summary",
@@ -279,6 +280,10 @@ if (typeof Office !== "undefined")
       });
 
       els["signin-server"].value = cfg.apiBase;
+      els["our-side"].value = cfg.ourSide;
+      els["our-side"].addEventListener("change", () => {
+        cfg.ourSide = els["our-side"].value;
+      });
 
       // Review-depth toggle — "Deep review" on = deep, off = quick. Persists immediately, keeping the
       // cfg.mode contract (localStorage "lh.mode") unchanged so the rest of the flow is untouched.
@@ -298,34 +303,6 @@ if (typeof Office !== "undefined")
             : "Quick mode selected — fast check.",
         );
       };
-
-      // Review-scope selector — "Whole" reviews the whole document; "Redlines" reviews ONLY the
-      // tracked changes (the backend reconstructs original-vs-accepted and grades each change).
-      const setScopeUI = (scope) => {
-        const redl = scope === "redlines";
-        els["scope-whole"].classList.toggle("is-on", !redl);
-        els["scope-whole"].setAttribute("aria-pressed", redl ? "false" : "true");
-        els["scope-redlines"].classList.toggle("is-on", redl);
-        els["scope-redlines"].setAttribute("aria-pressed", redl ? "true" : "false");
-        els["scope-caption"].textContent = redl
-          ? "redlines only · tracked changes"
-          : "whole document";
-      };
-      const selectScope = (scope) => {
-        if (cfg.scope === scope) return;
-        localStorage.setItem("lh.scope", scope);
-        setScopeUI(scope);
-        resetForScopeChange(); // whole vs redlines are different analyses — drop any cached review
-        if (scope === "redlines") {
-          setStatus("Redlines review — only this document's tracked changes will be reviewed.");
-          preflightRedlines(); // best-effort heads-up if there are no tracked changes
-        } else {
-          setStatus("Whole-document review.");
-        }
-      };
-      setScopeUI(cfg.scope); // default: whole
-      els["scope-whole"].onclick = () => selectScope("whole");
-      els["scope-redlines"].onclick = () => selectScope("redlines");
 
       els["settings-toggle"].onclick = () => {
         const closed = els.settings.classList.toggle("hidden");
@@ -363,48 +340,6 @@ if (typeof Office !== "undefined")
 function setStatus(msg, isError) {
   els.status.textContent = msg || "";
   els.status.classList.toggle("error", !!isError);
-}
-
-// Switching scope (whole <-> redlines) invalidates any cached review — they are different analyses.
-// Drop the caches and return the pane to its pre-review state so the next Review runs the new scope.
-function resetForScopeChange() {
-  reviews = { quick: null, deep: null };
-  viewMode = null;
-  lastReview = null;
-  renderedFindings = [];
-  els.summary.classList.add("hidden");
-  els.runctl.classList.add("hidden");
-  els.runctl.innerHTML = "";
-  els.actions.classList.add("hidden");
-  els.findings.innerHTML = "";
-  els["review-footer"].classList.add("hidden");
-  els.meta.innerHTML = "";
-  els.prereview.classList.remove("hidden");
-}
-
-// Best-effort pre-flight (Word API 1.5+): warn if "Redlines" is chosen on a document with no tracked
-// changes. The backend's no_redlines 422 is the authoritative guard; this is only a friendlier hint.
-function preflightRedlines() {
-  try {
-    if (
-      typeof Word === "undefined" ||
-      !Office.context.requirements.isSetSupported("WordApi", "1.5")
-    )
-      return;
-    Word.run(async (ctx) => {
-      const tc = ctx.document.body.getTrackedChanges();
-      tc.load("items");
-      await ctx.sync();
-      if (tc.items.length === 0 && cfg.scope === "redlines") {
-        setStatus(
-          "This document has no tracked changes — add redlines or switch to Whole document.",
-          true,
-        );
-      }
-    }).catch(() => {});
-  } catch (e) {
-    /* best-effort: detection unavailable */
-  }
 }
 
 /* ---- read the open document as .docx bytes ---- */
@@ -482,16 +417,15 @@ async function runReview(modeArg) {
     const fd = new FormData();
     fd.append("file", new Blob([bytes], { type: DOCX_MIME }), "document.docx");
     fd.append("mode", mode);
-    fd.append("scope", cfg.scope);
-    fd.append("source_channel", "word");
+    if (cfg.ourSide) fd.append("our_side", cfg.ourSide);
     const headers = {};
     if (cfg.token) headers["Authorization"] = "Bearer " + cfg.token;
     const base = cfg.apiBase.replace(/\/$/, "");
-    // A deep review fans out several passes and legitimately runs for MINUTES — longer than the
-    // platform's ingress request timeout (~240s on ACA), which would kill a held-open synchronous
-    // connection mid-review. So deep mode submits ASYNC (202 + job id) and POLLS the job to
-    // completion (GET /v1/reviews/jobs/{id}) with backoff; quick stays a single sync request. Both
-    // are bounded by the per-mode AbortController timeout above (the poll waits abort with it too).
+    // Deep mode fans out several passes and legitimately runs for MINUTES — longer than a typical
+    // ingress request timeout, which would kill a held-open synchronous connection mid-review. So
+    // deep submits ASYNC (POST /api/reviews -> 202 + id) and POLLS GET /api/reviews/{id} to
+    // completion with backoff; quick stays a single synchronous POST. Both are bounded by the
+    // per-mode AbortController timeout above (the poll wait aborts with it too).
     const body =
       mode === "deep"
         ? await runAsyncReview(base, fd, headers, controller.signal)
@@ -529,19 +463,19 @@ async function runReview(modeArg) {
 }
 
 /* ===== review transport (sync quick / async deep) ================
- * Quick reviews are a single fast pass — one synchronous POST. Deep reviews can outlast the
- * platform's ingress request timeout, so they submit ASYNC (202 + job id) and poll the job.
- * These share the pure shape/backoff helpers below so both paths (and the node tests) agree. */
+ * Quick reviews are a single fast pass — one synchronous POST /api/reviews (200, the finished
+ * review inline). Deep reviews can outlast a typical ingress request timeout, so they submit
+ * ASYNC (POST /api/reviews -> 202 + id) and poll GET /api/reviews/{id} to completion. These share
+ * the pure shape/backoff helpers below so both paths (and the node tests) agree. */
 
-// A well-formed review payload — the shape both the sync 201 and the inlined async job.review carry.
+// A well-formed, FINISHED review payload — the shape both the sync 200 and a "done" poll carry.
 function isReviewBody(body) {
   return !!(
     body &&
     typeof body === "object" &&
-    body.review_id &&
-    Array.isArray(body.findings) &&
-    body.coverage &&
-    typeof body.coverage === "object"
+    body.id &&
+    body.status === "done" &&
+    Array.isArray(body.findings)
   );
 }
 
@@ -564,14 +498,15 @@ function nextPollDelayMs(attempt) {
   return Math.min(cap, Math.round(base * Math.pow(factor, Math.max(0, attempt))));
 }
 
-// Interpret one job poll (GET /v1/reviews/jobs/{id}). status walks pending -> running -> done|failed;
-// when done the completed review is inlined as job.review. Returns { state, review?, error? }.
+// Interpret one GET /api/reviews/{id} poll. status walks queued -> running -> done|failed; when
+// done the poll response IS the finished review (no separate wrapper). Returns
+// { state, review?, error? }.
 function jobOutcome(job) {
   if (!job || typeof job !== "object") return { state: "pending" };
   const status = String(job.status || "").toLowerCase();
-  if (status === "done") return { state: "done", review: job.review || null };
+  if (status === "done") return { state: "done", review: isReviewBody(job) ? job : null };
   if (status === "failed") return { state: "failed", error: job.error || "" };
-  return { state: "pending" };
+  return { state: "pending" }; // queued | running
 }
 
 // A setTimeout that also rejects (AbortError) if the shared review AbortController fires, so the
@@ -596,10 +531,10 @@ function delay(ms, signal) {
   });
 }
 
-// Quick path: one synchronous POST /v1/reviews; the finished review comes back inline (201, or 200
-// on an idempotent cache hit). Returns the validated review body or throws a display-ready Error.
+// Quick path: one synchronous POST /api/reviews; the finished review comes back inline (200).
+// Returns the validated review body or throws a display-ready Error.
 async function runSyncReview(base, fd, headers, signal) {
-  const resp = await fetch(base + "/v1/reviews", {
+  const resp = await fetch(base + "/api/reviews", {
     method: "POST",
     headers,
     body: fd,
@@ -616,10 +551,9 @@ async function runSyncReview(base, fd, headers, signal) {
   return body;
 }
 
-// Deep path: POST /v1/reviews?async=1. A queued job answers 202 + { job_id } (poll it); a cache hit
-// (or a server that ran it inline) answers 200/201 with the finished review directly (use as-is).
+// Deep path: POST /api/reviews (mode=deep) answers 202 + { id, status: "queued" } — poll it.
 async function runAsyncReview(base, fd, headers, signal) {
-  const resp = await fetch(base + "/v1/reviews?async=1", {
+  const resp = await fetch(base + "/api/reviews", {
     method: "POST",
     headers,
     body: fd,
@@ -632,19 +566,15 @@ async function runAsyncReview(base, fd, headers, signal) {
   const body = parseJsonSafe(await resp.text());
   if (!resp.ok)
     throw new Error((body && body.error && body.error.message) || "HTTP " + resp.status);
-  if (resp.status === 202) {
-    const jobId = body && body.job_id;
-    if (!jobId) throw new Error("Malformed response from the engine.");
-    return pollReviewJob(base, jobId, headers, signal);
-  }
-  if (!isReviewBody(body)) throw new Error("Malformed response from the engine.");
-  return body;
+  const reviewId = body && body.id;
+  if (!reviewId) throw new Error("Malformed response from the engine.");
+  return pollReview(base, reviewId, headers, signal);
 }
 
-// Poll a submitted deep-review job until it is done (return the inlined review) or failed (throw).
-// The elapsed-time ticker in runReview keeps the status line moving; `delay` carries the abort.
-async function pollReviewJob(base, jobId, headers, signal) {
-  const url = base + "/v1/reviews/jobs/" + encodeURIComponent(jobId);
+// Poll a submitted deep review until it is done (return it) or failed (throw). The elapsed-time
+// ticker in runReview keeps the status line moving; `delay` carries the abort.
+async function pollReview(base, reviewId, headers, signal) {
+  const url = base + "/api/reviews/" + encodeURIComponent(reviewId);
   for (let attempt = 0; ; attempt++) {
     await delay(nextPollDelayMs(attempt), signal); // rejects AbortError on the overall timeout
     const resp = await fetch(url, { headers, signal });
@@ -656,12 +586,12 @@ async function pollReviewJob(base, jobId, headers, signal) {
     if (!resp.ok) throw new Error((job && job.error && job.error.message) || "HTTP " + resp.status);
     const outcome = jobOutcome(job);
     if (outcome.state === "done") {
-      if (!isReviewBody(outcome.review)) throw new Error("Malformed response from the engine.");
+      if (!outcome.review) throw new Error("Malformed response from the engine.");
       return outcome.review;
     }
     if (outcome.state === "failed")
       throw new Error(outcome.error ? "Review failed: " + outcome.error : "The review job failed.");
-    // pending / running -> keep polling
+    // queued / running -> keep polling
   }
 }
 
@@ -759,7 +689,7 @@ function render(r) {
      </div>
      <div class="bar"><span style="width:${pct}%"></span></div>
      <div class="summary-foot">
-       <span>perspective: ${esc(r.perspective || "—")}</span>
+       <span>${esc(r.doc_type || "document")}${r.our_side ? " · " + esc(r.our_side) : ""}</span>
        <span class="counts">
          <span class="c-high">${esc(c.high || 0)} high</span>
          <span class="c-med">${esc(c.medium || 0)} medium</span>
@@ -828,17 +758,7 @@ function render(r) {
   if (gaps.length) {
     html += `<div class="section-h">Missing required clauses (${gaps.length})</div><div class="gaps">`;
     gaps.forEach((g) => {
-      html += `<div class="gap-card missing">&#9888; ${esc(g.clause_type || g.item_key)} &mdash; ${esc(g.note || "absent")}</div>`;
-    });
-    html += `</div>`;
-  }
-
-  /* ---- cross-clause flags ---- */
-  const flags = r.cross_clause_flags || [];
-  if (flags.length) {
-    html += `<div class="section-h">Cross-clause flags (${flags.length})</div><div class="gaps">`;
-    flags.forEach((x) => {
-      html += `<div class="gap-card cross">&#8596; ${esc((x.clauses || []).join(", "))}: ${esc(x.issue || "")}</div>`;
+      html += `<div class="gap-card missing">&#9888; ${esc(g.clause_type)} &mdash; ${esc(g.note || "absent")}</div>`;
     });
     html += `</div>`;
   }
@@ -874,24 +794,32 @@ function render(r) {
   if (pending) els["apply-all-btn"].textContent = `Apply all ${pending} redlines (tracked changes)`;
 
   /* ---- review-details popover ---- */
+  const usage = r.usage || {};
+  const calls = usage.calls || [];
   els.meta.innerHTML =
     `<div class="info-wrap">
        <button type="button" class="info-btn" id="info-btn" aria-label="Review details" aria-controls="info-pop" aria-expanded="false">i</button>
        <div class="info-pop hidden" id="info-pop" aria-label="Review details">
          <div class="info-h">Review details</div>
-         <div class="info-row"><span class="k">Review</span><span class="v">${esc(r.review_id)}</span></div>` +
+         <div class="info-row"><span class="k">Review</span><span class="v">${esc(r.id)}</span></div>` +
     (r.playbook_version
       ? `<div class="info-row"><span class="k">Playbook</span><span class="v">${esc(r.playbook_version)}</span></div>`
       : "") +
-    (r.input_tokens != null
-      ? `<div class="info-row"><span class="k">Input tokens</span><span class="v">${esc(fmtInt(r.input_tokens))}</span></div>`
+    (usage.input_tokens != null
+      ? `<div class="info-row"><span class="k">Input tokens</span><span class="v">${esc(fmtInt(usage.input_tokens))}</span></div>`
       : "") +
-    (r.output_tokens != null
-      ? `<div class="info-row"><span class="k">Output tokens</span><span class="v">${esc(fmtInt(r.output_tokens))}</span></div>`
+    (usage.output_tokens != null
+      ? `<div class="info-row"><span class="k">Output tokens</span><span class="v">${esc(fmtInt(usage.output_tokens))}</span></div>`
       : "") +
-    (r.cost_usd != null
-      ? `<div class="info-row"><span class="k">Cost</span><span class="v">$${esc(r.cost_usd)}</span></div>`
+    (usage.cost_usd != null
+      ? `<div class="info-row"><span class="k">Cost</span><span class="v">$${esc(usage.cost_usd)}</span></div>`
       : "") +
+    calls
+      .map(
+        (c) =>
+          `<div class="info-row"><span class="k">${esc(c.agent)}</span><span class="v">${esc(c.model)} &middot; $${esc(c.cost_usd)}</span></div>`,
+      )
+      .join("") +
     `</div>
      </div>`;
   els["review-footer"].classList.remove("hidden");

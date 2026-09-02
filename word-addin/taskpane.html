@@ -80,36 +80,16 @@
       </section>
 
       <section id="review-section" class="hidden" aria-label="Review">
-        <!-- PRE-REVIEW: review-scope + review-depth + primary action (hidden once a review has run) -->
+        <!-- PRE-REVIEW: your side + review-depth + primary action (hidden once a review has run) -->
         <div id="prereview">
-          <div class="depth-row" id="scope-row">
-            <div>
-              <div class="depth-title display">Review scope</div>
-              <div class="depth-cap" id="scope-caption">whole document</div>
-            </div>
-            <div class="seg-toggle" role="group" aria-label="Review scope">
-              <button
-                id="scope-whole"
-                class="seg-btn is-on"
-                type="button"
-                data-scope="whole"
-                aria-pressed="true"
-                title="Review the whole document"
-              >
-                Whole
-              </button>
-              <button
-                id="scope-redlines"
-                class="seg-btn"
-                type="button"
-                data-scope="redlines"
-                aria-pressed="false"
-                title="Review only the tracked changes"
-              >
-                Redlines
-              </button>
-            </div>
-          </div>
+          <label class="field">
+            <span class="field-label">Your side (optional)</span>
+            <input
+              id="our-side"
+              type="text"
+              placeholder="e.g. the Customer, the Receiving Party"
+            />
+          </label>
           <div class="depth-row">
             <div>
               <div class="depth-title display">Deep review</div>
