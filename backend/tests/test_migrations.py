@@ -5,9 +5,8 @@ model is added without a migration (or vice versa) the two drift, and the centra
 assumption breaks. This builds the schema both ways into throwaway SQLite DBs and asserts the same
 table set.
 
-Phase 0 note: ``app/models.py`` is a placeholder (Phase 1 writes the real §5 tables + the matching
-baseline migration), so both sides are currently empty and this test is trivially green — it starts
-pulling weight the moment Phase 1 lands.
+``app/models.py`` (Phase 1) declares the full §5 schema — ``users``, ``sessions``, ``reviews``,
+``llm_calls`` — matched by the single ``0001_legal_helper_baseline`` migration.
 """
 
 from __future__ import annotations
@@ -16,7 +15,6 @@ from __future__ import annotations
 def test_create_all_matches_alembic_head(tmp_path, monkeypatch):
     from sqlalchemy import create_engine, inspect
 
-    import app.auth.models  # noqa: F401 - register identity tables on Base.metadata
     import app.models  # noqa: F401 - register core tables on Base.metadata
     from alembic import command
     from app import db_migrate

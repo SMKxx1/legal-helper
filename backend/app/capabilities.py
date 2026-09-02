@@ -174,16 +174,27 @@ BUCKET = "bucket"
 OPENROUTER_ZDR_LIST = "openrouter_zdr_list"
 
 
+async def _database_probe(s: Settings) -> str | None:
+    """In prod, ``APP_SECRET_KEY`` is required (it encrypts every user's OpenRouter key at rest —
+    ``app.crypto``). Its absence there fails this probe, which pulls the critical ``database``
+    capability to ``unhealthy`` and ``/healthz`` to 503. In dev a missing key is fine — a fixed
+    dev-only key is derived instead (loudly logged, never used once a real key is set)."""
+    if s.app_env != "dev" and not s.app_secret_key.strip():
+        return "APP_SECRET_KEY is required outside APP_ENV=dev (encrypts user OpenRouter keys)"
+    return None
+
+
 def default_capabilities() -> list[Capability]:
     """The three capabilities registered at boot."""
     return [
         # Critical: the primary datastore. No config is required to boot (SQLite works out of the
-        # box); Phase 1 adds a probe that fails this when APP_SECRET_KEY is missing in prod.
+        # box); the probe above fails this when APP_SECRET_KEY is missing outside dev.
         Capability(
             name=DATABASE,
             required_keys=(),
             summary="Primary Postgres/SQLite datastore.",
             critical=True,
+            probe=_database_probe,
         ),
         # A Railway bucket storing each review's original .docx (Phase 4). Disabled until all four
         # S3-compatible fields are configured.

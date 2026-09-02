@@ -28,18 +28,27 @@ const RAG = {
   green: { cls: "green", pill: "GREEN", label: "Low risk" },
 };
 
-// API origin + key resolution order:
-//   1. a user override saved in this browser (Settings pane),
+// API origin resolution order:
+//   1. a user override saved in this browser (the Sign-in screen's "Server base URL" field),
 //   2. the origin the add-in was served from (the same server hosts the API),
 //   3. local-dev fallback.
+// All add-in state lives in localStorage under "lh.*" (plan §4.4): lh.token, lh.serverBase,
+// lh.mode, lh.ourSide.
 const servedOrigin =
   typeof location !== "undefined" && /^https?:/.test(location.origin) ? location.origin : "";
 const cfg = {
   get apiBase() {
-    return (localStorage.getItem("lh.apiBase") || servedOrigin || "https://localhost:8000").trim();
+    return (localStorage.getItem("lh.serverBase") || servedOrigin || "https://localhost:8000").trim();
   },
-  get apiKey() {
-    return (localStorage.getItem("lh.apiKey") || "").trim();
+  set apiBase(v) {
+    localStorage.setItem("lh.serverBase", (v || "").trim());
+  },
+  get token() {
+    return localStorage.getItem("lh.token") || "";
+  },
+  set token(v) {
+    if (v) localStorage.setItem("lh.token", v);
+    else localStorage.removeItem("lh.token");
   },
   get mode() {
     return localStorage.getItem("lh.mode") || "deep";
@@ -48,6 +57,180 @@ const cfg = {
     return localStorage.getItem("lh.scope") === "redlines" ? "redlines" : "whole";
   },
 };
+
+/* ===== auth: sign in, the OpenRouter key gate, and the bearer token on every fetch =====
+ * Three screens, mutually exclusive: #signin-screen (no token yet) -> #addkey-screen (signed in,
+ * GET /api/me says has_key=false) -> #review-section (signed in AND has a key). The ⚙ settings
+ * panel (account summary, change key, sign out) is only reachable from the last one. */
+let currentUser = null; // the `user` object from /api/auth/login or /api/me, once signed in
+
+// Every authenticated request goes through here: attaches the bearer token, and on 401 drops the
+// (now-invalid) session and returns the pane to Sign in — plan §4.4 "On any 401 ... return to
+// Sign in." `skipAuthReset` lets the sign-in form's own login POST reuse this without recursing.
+async function apiFetch(path, opts, { skipAuthReset } = {}) {
+  opts = opts || {};
+  const headers = Object.assign({}, opts.headers || {});
+  if (cfg.token) headers["Authorization"] = "Bearer " + cfg.token;
+  const resp = await fetch(cfg.apiBase.replace(/\/$/, "") + path, { ...opts, headers });
+  if (resp.status === 401 && !skipAuthReset) {
+    signOut("Your session expired — sign in again.");
+  }
+  return resp;
+}
+
+function showScreen(name) {
+  const screens = { signin: els["signin-screen"], addkey: els["addkey-screen"], ready: els["review-section"] };
+  Object.keys(screens).forEach((k) => screens[k] && screens[k].classList.toggle("hidden", k !== name));
+  els["settings-toggle"].classList.toggle("hidden", name !== "ready");
+  if (name !== "ready") {
+    els.settings.classList.add("hidden");
+    els["settings-toggle"].setAttribute("aria-expanded", "false");
+  }
+}
+
+function signOut(message) {
+  currentUser = null;
+  cfg.token = "";
+  showScreen("signin");
+  setAuthStatus("signin-status", message || "", !!message);
+}
+
+function setAuthStatus(elId, msg, isError) {
+  const el = els[elId];
+  if (!el) return;
+  el.textContent = msg || "";
+  el.classList.toggle("error", !!isError);
+}
+
+function renderSettingsSummary() {
+  if (!currentUser) return;
+  els["settings-account"].textContent = currentUser.display_name || currentUser.username;
+  els["settings-key"].textContent = currentUser.key_label
+    ? `Key •••• ${currentUser.key_last4} (${currentUser.key_label})`
+    : `Key •••• ${currentUser.key_last4 || "????"}`;
+}
+
+// After a successful login (or on boot, with a stored token): route to Add-key or Ready.
+function routeSignedInUser(user) {
+  currentUser = user;
+  if (!user.has_key) {
+    showScreen("addkey");
+    setAuthStatus("addkey-status", "");
+  } else {
+    renderSettingsSummary();
+    showScreen("ready");
+    setStatus("Ready — pick a depth and review the open document.");
+  }
+}
+
+async function doSignIn() {
+  const server = els["signin-server"].value.trim();
+  if (server) cfg.apiBase = server;
+  const username = els["signin-username"].value.trim();
+  const password = els["signin-password"].value;
+  if (!username || !password) {
+    setAuthStatus("signin-status", "Enter a username and password.", true);
+    return;
+  }
+  els["signin-btn"].disabled = true;
+  setAuthStatus("signin-status", "Signing in…");
+  try {
+    const resp = await apiFetch(
+      "/api/auth/login",
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, password }) },
+      { skipAuthReset: true },
+    );
+    const body = parseJsonSafe(await resp.text());
+    if (!resp.ok) {
+      const msg =
+        resp.status === 429
+          ? "Too many failed sign-ins — try again in a few minutes."
+          : (body && body.error && body.error.message) || "Sign-in failed.";
+      setAuthStatus("signin-status", msg, true);
+      return;
+    }
+    cfg.token = body.token;
+    els["signin-password"].value = "";
+    setAuthStatus("signin-status", "");
+    routeSignedInUser(body.user);
+  } catch (e) {
+    setAuthStatus(
+      "signin-status",
+      "Could not reach " + cfg.apiBase + " — check the server base URL.",
+      true,
+    );
+  } finally {
+    els["signin-btn"].disabled = false;
+  }
+}
+
+async function doSaveKey() {
+  const apiKey = els["addkey-key"].value.trim();
+  if (!apiKey) {
+    setAuthStatus("addkey-status", "Paste your OpenRouter API key.", true);
+    return;
+  }
+  els["addkey-btn"].disabled = true;
+  setAuthStatus("addkey-status", "Validating with OpenRouter…");
+  try {
+    const resp = await apiFetch("/api/me/openrouter-key", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ api_key: apiKey }),
+    });
+    const body = parseJsonSafe(await resp.text());
+    if (!resp.ok) {
+      setAuthStatus(
+        "addkey-status",
+        (body && body.error && body.error.message) || "Could not save that key.",
+        true,
+      );
+      return;
+    }
+    els["addkey-key"].value = "";
+    currentUser = Object.assign({}, currentUser, {
+      has_key: true,
+      key_last4: body.key_last4,
+      key_label: body.key_label,
+    });
+    renderSettingsSummary();
+    showScreen("ready");
+    setStatus("Key saved — ready to review.");
+  } catch (e) {
+    setAuthStatus("addkey-status", "Could not reach the server.", true);
+  } finally {
+    els["addkey-btn"].disabled = false;
+  }
+}
+
+async function doSignOut() {
+  try {
+    await apiFetch("/api/auth/logout", { method: "POST" }, { skipAuthReset: true });
+  } catch (e) {
+    /* best-effort — the client-side token is dropped either way */
+  }
+  signOut("");
+}
+
+// On boot with a stored token, confirm it still works before showing Ready/Add-key.
+async function bootAuth() {
+  if (!cfg.token) {
+    showScreen("signin");
+    return;
+  }
+  try {
+    const resp = await apiFetch("/api/me", { method: "GET" }, { skipAuthReset: true });
+    if (!resp.ok) {
+      signOut("");
+      return;
+    }
+    routeSignedInUser(parseJsonSafe(await resp.text()));
+  } catch (e) {
+    // Server unreachable — stay on Sign in rather than getting stuck on a blank pane.
+    showScreen("signin");
+    setAuthStatus("signin-status", "Could not reach " + cfg.apiBase + ".", true);
+  }
+}
 
 // Guard so the file can be `require`d in Node (unit tests) without office.js present — in the
 // browser office.js loads first (taskpane.html), so Office is defined and this runs unchanged.
@@ -59,11 +242,23 @@ if (typeof Office !== "undefined")
         return;
       }
       [
+        "signin-screen",
+        "signin-server",
+        "signin-username",
+        "signin-password",
+        "signin-btn",
+        "signin-status",
+        "addkey-screen",
+        "addkey-key",
+        "addkey-btn",
+        "addkey-status",
         "settings",
         "settings-toggle",
-        "api-base",
-        "api-key",
-        "save-settings",
+        "settings-account",
+        "settings-key",
+        "settings-change-key",
+        "settings-signout",
+        "review-section",
         "prereview",
         "depth-toggle",
         "depth-caption",
@@ -83,8 +278,7 @@ if (typeof Office !== "undefined")
         els[id] = document.getElementById(id);
       });
 
-      els["api-base"].value = cfg.apiBase;
-      els["api-key"].value = cfg.apiKey;
+      els["signin-server"].value = cfg.apiBase;
 
       // Review-depth toggle — "Deep review" on = deep, off = quick. Persists immediately, keeping the
       // cfg.mode contract (localStorage "lh.mode") unchanged so the rest of the flow is untouched.
@@ -137,17 +331,27 @@ if (typeof Office !== "undefined")
         const closed = els.settings.classList.toggle("hidden");
         els["settings-toggle"].setAttribute("aria-expanded", closed ? "false" : "true");
       };
-      els["save-settings"].onclick = () => {
-        localStorage.setItem("lh.apiBase", els["api-base"].value);
-        localStorage.setItem("lh.apiKey", els["api-key"].value);
+      els["settings-change-key"].onclick = () => {
         els.settings.classList.add("hidden");
         els["settings-toggle"].setAttribute("aria-expanded", "false");
-        setStatus("Settings saved.");
+        setAuthStatus("addkey-status", "");
+        showScreen("addkey");
       };
+      els["settings-signout"].onclick = () => doSignOut();
+      els["signin-btn"].onclick = () => doSignIn();
+      ["signin-username", "signin-password", "signin-server"].forEach((id) => {
+        els[id].addEventListener("keydown", (e) => {
+          if (e.key === "Enter") doSignIn();
+        });
+      });
+      els["addkey-btn"].onclick = () => doSaveKey();
+      els["addkey-key"].addEventListener("keydown", (e) => {
+        if (e.key === "Enter") doSaveKey();
+      });
       els["review-btn"].onclick = () => runReview(); // uses the current depth-toggle choice
       els["apply-all-btn"].onclick = applyAll;
-      setStatus("Ready — pick a depth and review the open document.");
       initialized = true;
+      bootAuth(); // decides Sign in / Add key / Ready from the stored token, if any
     } catch (e) {
       document.body.innerHTML =
         "<p style='padding:16px'>Failed to initialize the add-in: " +
@@ -281,7 +485,7 @@ async function runReview(modeArg) {
     fd.append("scope", cfg.scope);
     fd.append("source_channel", "word");
     const headers = {};
-    if (cfg.apiKey) headers["X-API-Key"] = cfg.apiKey;
+    if (cfg.token) headers["Authorization"] = "Bearer " + cfg.token;
     const base = cfg.apiBase.replace(/\/$/, "");
     // A deep review fans out several passes and legitimately runs for MINUTES — longer than the
     // platform's ingress request timeout (~240s on ACA), which would kill a held-open synchronous
@@ -401,6 +605,10 @@ async function runSyncReview(base, fd, headers, signal) {
     body: fd,
     signal,
   });
+  if (resp.status === 401) {
+    signOut("Your session expired — sign in again.");
+    throw new Error("Sign-in required.");
+  }
   const body = parseJsonSafe(await resp.text());
   if (!resp.ok)
     throw new Error((body && body.error && body.error.message) || "HTTP " + resp.status);
@@ -417,6 +625,10 @@ async function runAsyncReview(base, fd, headers, signal) {
     body: fd,
     signal,
   });
+  if (resp.status === 401) {
+    signOut("Your session expired — sign in again.");
+    throw new Error("Sign-in required.");
+  }
   const body = parseJsonSafe(await resp.text());
   if (!resp.ok)
     throw new Error((body && body.error && body.error.message) || "HTTP " + resp.status);
@@ -436,6 +648,10 @@ async function pollReviewJob(base, jobId, headers, signal) {
   for (let attempt = 0; ; attempt++) {
     await delay(nextPollDelayMs(attempt), signal); // rejects AbortError on the overall timeout
     const resp = await fetch(url, { headers, signal });
+    if (resp.status === 401) {
+      signOut("Your session expired — sign in again.");
+      throw new Error("Sign-in required.");
+    }
     const job = parseJsonSafe(await resp.text());
     if (!resp.ok) throw new Error((job && job.error && job.error.message) || "HTTP " + resp.status);
     const outcome = jobOutcome(job);

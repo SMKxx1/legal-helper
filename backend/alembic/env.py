@@ -15,9 +15,6 @@ from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 from app import models  # noqa: F401 — import populates Base.metadata with every table
-from app.auth import (
-    models as _auth_models,  # noqa: F401 — registers the identity/org tables
-)
 from app.config import settings
 from app.db import Base
 

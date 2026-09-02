@@ -26,7 +26,7 @@
         </div>
         <button
           id="settings-toggle"
-          class="icon-btn"
+          class="icon-btn hidden"
           title="Settings"
           aria-label="Settings"
           aria-expanded="false"
@@ -37,20 +37,49 @@
     </header>
 
     <div class="content">
-      <!-- settings -->
-      <section id="settings" class="panel hidden" aria-label="Settings">
+      <!-- SIGN IN — shown until a bearer token is stored. Server base URL defaults to the origin
+           this page was served from (the same server hosts the API); editable for local dev. -->
+      <section id="signin-screen" class="panel" aria-label="Sign in">
         <label class="field">
-          <span class="field-label">API base URL</span>
-          <input id="api-base" type="text" placeholder="https://legal-helper.example.com" />
+          <span class="field-label">Server base URL</span>
+          <input id="signin-server" type="text" placeholder="https://legal-helper.example.com" />
         </label>
         <label class="field">
-          <span class="field-label">API key (optional)</span>
-          <input id="api-key" type="password" placeholder="X-API-Key" />
+          <span class="field-label">Username</span>
+          <input id="signin-username" type="text" autocomplete="username" />
         </label>
-        <button id="save-settings" class="btn-secondary">Save</button>
+        <label class="field">
+          <span class="field-label">Password</span>
+          <input id="signin-password" type="password" autocomplete="current-password" />
+        </label>
+        <button id="signin-btn" class="btn-gold">Sign in</button>
+        <p id="signin-status" class="status" role="status" aria-live="polite"></p>
       </section>
 
-      <section id="review-section" aria-label="Review">
+      <!-- ADD KEY — shown once signed in when GET /api/me reports has_key=false. -->
+      <section id="addkey-screen" class="panel hidden" aria-label="Add your OpenRouter key">
+        <div class="field-label" style="margin-bottom: 10px">Add your OpenRouter key</div>
+        <label class="field">
+          <span class="field-label">OpenRouter API key</span>
+          <input id="addkey-key" type="password" placeholder="sk-or-…" autocomplete="off" />
+        </label>
+        <button id="addkey-btn" class="btn-gold">Save key</button>
+        <p class="status">
+          <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">Get a key at openrouter.ai/keys</a>
+        </p>
+        <p class="status">Stored encrypted on the server — only the last 4 digits are ever shown.</p>
+        <p id="addkey-status" class="status" role="status" aria-live="polite"></p>
+      </section>
+
+      <!-- settings (⚙) — account + key summary, change key, sign out -->
+      <section id="settings" class="panel hidden" aria-label="Settings">
+        <p class="field-label" id="settings-account"></p>
+        <p class="status" id="settings-key"></p>
+        <button id="settings-change-key" class="btn-secondary">Change key</button>
+        <button id="settings-signout" class="btn-secondary">Sign out</button>
+      </section>
+
+      <section id="review-section" class="hidden" aria-label="Review">
         <!-- PRE-REVIEW: review-scope + review-depth + primary action (hidden once a review has run) -->
         <div id="prereview">
           <div class="depth-row" id="scope-row">

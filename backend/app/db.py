@@ -87,9 +87,6 @@ def init_db() -> None:
     here is the idempotent fresh-DB/test safety net only; it never ALTERs an existing table.
     """
     from . import models  # noqa: F401  (populates Base.metadata)
-    from .auth import (
-        models as _auth_models,  # noqa: F401  (registers identity/session tables)
-    )
 
     Base.metadata.create_all(bind=engine)
 

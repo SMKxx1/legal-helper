@@ -5,10 +5,9 @@ is logged) -> exception handlers -> middleware (correlation-id) -> routers -> sh
 a catch-all default-deny 404 (registered LAST). It must boot with ZERO env vars set; missing
 configuration only disables capabilities.
 
-Phase 0 skeleton: only what already exists is mounted (the Word add-in static bundle). Later phases
-add the ``/api/auth``, ``/api/me``, ``/api/reviews``, ``/api/me/usage`` and ``/api/admin/usage``
-routers as they are written — this file's job is the fixed shell around them, not the routes
-themselves.
+Routers mounted so far: the Word add-in static bundle, ``/api/auth`` and ``/api/me`` (Phase 1).
+Later phases add ``/api/reviews``, ``/api/me/usage`` and ``/api/admin/usage`` as they are written —
+this file's job is the fixed shell around them, not the routes themselves.
 
 Routes:
 * ``GET /healthz`` — shallow public liveness (200 ``{"status":"ok"}`` / 503). No capability detail
@@ -27,7 +26,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
 
-from .api import routes_addin
+from .api import routes_addin, routes_auth, routes_me
 from .api.errors import EngineError, engine_error_handler
 from .capabilities import CapabilityRegistry, build_registry
 from .config import Settings, get_settings
@@ -73,6 +72,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # The idempotent fresh-DB/test safety net; it never ALTERs an existing table. Alembic is the
         # sole source of truth for schema changes (deploy runs `python -m app.db_migrate` first).
         init_db()
+        # Runs each capability's health probe (today: `database` checks APP_SECRET_KEY in prod) so
+        # /healthz reflects real boot-time health, not just config presence.
+        await registry.run_probes()
         yield
 
     # OpenAPI/docs stay disabled (default-deny; this is a teaching demo backend, not a public API
@@ -155,9 +157,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(CorrelationIdMiddleware)
 
     # --- Routers. ---
-    # Word add-in (served SAME-ORIGIN with the /api routes added in later phases). Registered before
-    # the catch-all 404 so /addin/* matches here and non-/addin paths still default-deny.
+    # Word add-in (served SAME-ORIGIN with the /api routes below). Registered before the catch-all
+    # 404 so /addin/* matches here and non-/addin paths still default-deny.
     routes_addin.register(app)
+    app.include_router(routes_auth.router)
+    app.include_router(routes_me.router)
 
     @app.get("/healthz")
     async def healthz() -> JSONResponse:
