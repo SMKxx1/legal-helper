@@ -76,3 +76,31 @@ async def test_database_capability_healthy_in_dev_with_no_secret_key(
     reg = build_registry(Settings(_env_file=None))  # app_env defaults to "dev"
     await reg.run_probes()
     assert reg.state(DATABASE) is CapabilityState.ENABLED
+
+
+def test_a_plain_passphrase_is_accepted_as_app_secret_key(monkeypatch):
+    """The one-click deploy asks a stranger for APP_SECRET_KEY; a passphrase must work, not crash.
+
+    Fernet only accepts 32 url-safe-base64 bytes, so anything else is stretched into a key.
+    """
+    monkeypatch.setenv("APP_SECRET_KEY", "just a memorable passphrase")
+    s = Settings(_env_file=None)
+    monkeypatch.setattr(crypto, "settings", s)
+    round_tripped = crypto.decrypt(crypto.encrypt("sk-or-v1-secret"))
+    assert round_tripped == "sk-or-v1-secret"
+
+
+def test_a_real_fernet_key_is_used_verbatim():
+    """Back-compat: an existing deployment's key must keep decrypting what it already stored."""
+    from cryptography.fernet import Fernet
+
+    real = Fernet.generate_key().decode()
+    assert crypto.coerce_fernet_key(real) == real.encode()
+
+
+def test_a_passphrase_is_stretched_not_passed_through():
+    key = crypto.coerce_fernet_key("not a fernet key")
+    assert key != b"not a fernet key"
+    from cryptography.fernet import Fernet
+
+    Fernet(key)  # must be a valid Fernet key, i.e. this does not raise

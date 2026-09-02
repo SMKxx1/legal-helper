@@ -34,13 +34,32 @@ def _derive_dev_key() -> bytes:
     return base64.urlsafe_b64encode(digest)
 
 
+def coerce_fernet_key(raw: str) -> bytes:
+    """Turn whatever someone put in ``APP_SECRET_KEY`` into a usable Fernet key.
+
+    Fernet accepts only 32 url-safe-base64-encoded bytes and raises on anything else. That is a
+    fine contract for an operator following the README, but the one-click Railway deploy asks a
+    stranger for this value — and a passphrase typed into that box would otherwise crash the app
+    on the first key save.
+
+    So: a value that already IS a Fernet key is used verbatim — existing deployments keep
+    decrypting exactly what they encrypted — and anything else is stretched into one with SHA-256.
+    """
+    candidate = raw.encode("utf-8")
+    try:
+        Fernet(candidate)
+    except (ValueError, TypeError):
+        return base64.urlsafe_b64encode(hashlib.sha256(candidate).digest())
+    return candidate
+
+
 def resolve_fernet_key(s: Settings | None = None) -> bytes | None:
     """The raw Fernet key bytes to use, or ``None`` if none is configured and ``s.app_env`` is
     not ``dev`` (the caller — here, the ``database`` capability's probe — decides what a missing
     key means; this function never raises for it)."""
     s = s or settings
     if s.app_secret_key.strip():
-        return s.app_secret_key.strip().encode("utf-8")
+        return coerce_fernet_key(s.app_secret_key.strip())
     if s.app_env == "dev":
         log.warning(
             "crypto.dev_fallback_key",

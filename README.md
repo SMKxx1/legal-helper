@@ -7,6 +7,26 @@ routes only** — and returns findings the add-in applies as tracked changes and
 Built as a teaching demo for the "Deployment 2" workshop. It deploys as **one project, three
 Railway services**: the app (FastAPI in one container), Postgres, and a storage bucket.
 
+## Deploy your own
+
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new/template/14kjhi?utm_medium=integration&utm_source=button&utm_campaign=legal-helper)
+
+One click provisions all three services — the app from this repo, Postgres, and the `documents`
+bucket — and wires `DATABASE_URL` and the five `S3_*` variables between them for you. Railway asks
+you for three values:
+
+| Variable | What to put |
+|---|---|
+| `APP_ENV` | `prod` |
+| `APP_SECRET_KEY` | Any long random string. It encrypts the OpenRouter keys your users save — pick one and keep it, because changing it later makes stored keys unreadable. |
+| `ADDIN_ID` | Any GUID, e.g. from `uuidgen`. It identifies the add-in to Word; one per deployment. |
+
+Then pick a bucket region and hit **Deploy**. When it goes green: open your new domain, download
+`/manifest.xml`, sideload it in Word, and create your account from the task pane. No account,
+password, or key ships with this repo — the first person to register is the first user.
+
+There is no `OPENROUTER_API_KEY` to set. Each user brings their own key (see below).
+
 ---
 
 ## Quick start (local)
