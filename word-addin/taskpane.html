@@ -79,59 +79,83 @@
         <button id="settings-signout" class="btn-secondary">Sign out</button>
       </section>
 
-      <section id="review-section" class="hidden" aria-label="Review">
-        <!-- PRE-REVIEW: your side + review-depth + primary action (hidden once a review has run) -->
-        <div id="prereview">
-          <label class="field">
-            <span class="field-label">Your side (optional)</span>
-            <input
-              id="our-side"
-              type="text"
-              placeholder="e.g. the Customer, the Receiving Party"
-            />
-          </label>
-          <div class="depth-row">
-            <div>
-              <div class="depth-title display">Deep review</div>
-              <div class="depth-cap" id="depth-caption">few min &middot; most thorough</div>
+      <!-- READY — everything below is only shown once signed in AND a key is on file. Three
+           tabs share one ready-screen wrapper so ⚙ settings and sign-in/add-key stay unaffected. -->
+      <div id="ready-screen" class="hidden">
+        <nav id="tabs" class="tabs" aria-label="Sections">
+          <button type="button" class="tab-btn is-active" data-tab="review">Review</button>
+          <button type="button" class="tab-btn" data-tab="history">History</button>
+          <button type="button" class="tab-btn" data-tab="usage">Usage</button>
+        </nav>
+
+        <section id="review-section" aria-label="Review">
+          <!-- PRE-REVIEW: your side + review-depth + primary action (hidden once a review has run) -->
+          <div id="prereview">
+            <label class="field">
+              <span class="field-label">Your side (optional)</span>
+              <input
+                id="our-side"
+                type="text"
+                placeholder="e.g. the Customer, the Receiving Party"
+              />
+            </label>
+            <div class="depth-row">
+              <div>
+                <div class="depth-title display">Deep review</div>
+                <div class="depth-cap" id="depth-caption">few min &middot; most thorough</div>
+              </div>
+              <button
+                id="depth-toggle"
+                class="switch is-on"
+                type="button"
+                role="switch"
+                aria-checked="true"
+                aria-label="Toggle deep review"
+                title="Toggle deep review"
+              >
+                <span class="switch-knob" aria-hidden="true"></span>
+              </button>
             </div>
-            <button
-              id="depth-toggle"
-              class="switch is-on"
-              type="button"
-              role="switch"
-              aria-checked="true"
-              aria-label="Toggle deep review"
-              title="Toggle deep review"
-            >
-              <span class="switch-knob" aria-hidden="true"></span>
-            </button>
+            <button id="review-btn" class="btn-gold">Review this document&nbsp;&nbsp;&rarr;</button>
           </div>
-          <button id="review-btn" class="btn-gold">Review this document&nbsp;&nbsp;&rarr;</button>
-        </div>
 
-        <p id="status" class="status" role="status" aria-live="polite"></p>
+          <p id="status" class="status" role="status" aria-live="polite"></p>
 
-        <!-- review summary (rendered by JS) -->
-        <section id="summary" class="hidden" aria-label="Review summary"></section>
+          <!-- review summary (rendered by JS) -->
+          <section id="summary" class="hidden" aria-label="Review summary"></section>
 
-        <!-- post-review: re-run the missing mode, or (once both have run) toggle the cached view -->
-        <section id="runctl" class="runctl hidden" aria-label="Review controls"></section>
+          <!-- post-review: re-run the missing mode, or (once both have run) toggle the cached view -->
+          <section id="runctl" class="runctl hidden" aria-label="Review controls"></section>
 
-        <!-- apply all -->
-        <section id="actions" class="hidden">
-          <button id="apply-all-btn" class="btn-primary">
-            Apply all redlines (tracked changes)
-          </button>
+          <!-- apply all -->
+          <section id="actions" class="hidden">
+            <button id="apply-all-btn" class="btn-primary">
+              Apply all redlines (tracked changes)
+            </button>
+          </section>
+
+          <!-- findings / missing clauses / cross-clause (rendered by JS) -->
+          <section id="findings"></section>
+
+          <!-- review details (rendered by JS) -->
+          <footer id="review-footer" class="hidden"><span id="meta"></span></footer>
+        </section>
+        <!-- /review-section -->
+
+        <!-- HISTORY — last 20 reviews; Open re-renders the stored result in the Review tab. -->
+        <section id="history-section" class="hidden" aria-label="History">
+          <p id="history-status" class="status" role="status" aria-live="polite"></p>
+          <div id="history-list"></div>
         </section>
 
-        <!-- findings / missing clauses / cross-clause (rendered by JS) -->
-        <section id="findings"></section>
-
-        <!-- review details (rendered by JS) -->
-        <footer id="review-footer" class="hidden"><span id="meta"></span></footer>
-      </section>
-      <!-- /review-section -->
+        <!-- USAGE — /api/me/usage as stat tiles + a by-mode/by-model table. -->
+        <section id="usage-section" class="hidden" aria-label="Usage">
+          <p id="usage-status" class="status" role="status" aria-live="polite"></p>
+          <div id="usage-tiles" class="usage-tiles"></div>
+          <div id="usage-tables"></div>
+        </section>
+      </div>
+      <!-- /ready-screen -->
     </div>
 
     <script src="taskpane.js"></script>

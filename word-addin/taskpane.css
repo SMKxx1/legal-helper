@@ -410,6 +410,9 @@ button:focus-visible {
 .rag-pill.green {
   background: var(--green);
 }
+.rag-pill.failed {
+  background: var(--muted);
+}
 .rag-label {
   font-size: 11px;
   color: var(--muted);
@@ -800,4 +803,124 @@ footer {
 }
 .info-row .v {
   color: var(--ink);
+}
+
+/* ---- tabs (Review / History / Usage) ---- */
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  margin: 4px 0 14px;
+}
+.tab-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 8px 4px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.tab-btn:hover {
+  color: var(--ink);
+}
+.tab-btn.is-active {
+  color: var(--ink);
+  border-bottom-color: var(--gold);
+}
+
+/* ---- History tab ---- */
+.history-row {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 11px 12px;
+  margin: 0 0 10px;
+}
+.history-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.history-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.history-meta {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.history-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 9px;
+  flex-wrap: wrap;
+}
+.btn-ghost.confirm {
+  border-color: var(--red);
+  color: var(--red);
+}
+.btn-ghost:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---- Usage tab ---- */
+.usage-tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.usage-tile {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: #fff;
+}
+.usage-tile .num {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.15;
+}
+.usage-tile .label {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.usage-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 16px;
+  font-size: 12px;
+}
+.usage-table th {
+  text-align: left;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 0 6px 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.usage-table td {
+  padding: 7px 6px 7px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+}
+.usage-table tbody tr:last-child td {
+  border-bottom: none;
 }

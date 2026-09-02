@@ -6,18 +6,19 @@ a catch-all default-deny 404 (registered LAST). It must boot with ZERO env vars 
 configuration only disables capabilities.
 
 Routers mounted so far: the Word add-in static bundle, ``/api/auth`` and ``/api/me`` (Phase 1),
-``/api/reviews`` (Phase 2). Later phases add ``/api/me/usage`` and ``/api/admin/usage`` — this
-file's job is the fixed shell around them, not the routes themselves.
+``/api/reviews`` (Phase 2), ``/api/me/usage``/``/api/admin/usage`` and ``/``/``/api/status``
+(Phase 3) — this file's job is the fixed shell around them, not the routes themselves.
 
 Routes:
 * ``GET /healthz`` — shallow public liveness (200 ``{"status":"ok"}`` / 503). No capability detail
-  leaks here; the detailed report is ``GET /api/status`` (Phase 3).
+  leaks here; the detailed report is ``GET /api/status``.
 * a catch-all that returns a JSON 404 for everything else — an explicit default-deny fallback,
   registered AFTER every router so specific routes always match first.
 """
 
 from __future__ import annotations
 
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -26,7 +27,15 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
 
-from .api import reviews_repo, routes_addin, routes_auth, routes_me, routes_reviews
+from .api import (
+    reviews_repo,
+    routes_addin,
+    routes_auth,
+    routes_me,
+    routes_pages,
+    routes_reviews,
+    routes_usage,
+)
 from .api.errors import EngineError, engine_error_handler
 from .capabilities import CapabilityRegistry, build_registry
 from .config import Settings, get_settings
@@ -72,6 +81,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # The idempotent fresh-DB/test safety net; it never ALTERs an existing table. Alembic is the
         # sole source of truth for schema changes (deploy runs `python -m app.db_migrate` first).
         init_db()
+        # Demo deployments only (plan §4.6): SEED_DEMO_DATA=true seeds synthetic users + review
+        # history. seed_demo itself is the idempotency guard (skips work already done), so this is
+        # safe to call on every boot, not just a first one.
+        if settings.seed_demo_data:
+            from .seed_demo import run as seed_demo_run
+
+            seed_demo_run()
         # Runs each capability's health probe (today: `database` checks APP_SECRET_KEY in prod) so
         # /healthz reflects real boot-time health, not just config presence.
         await registry.run_probes()
@@ -95,6 +111,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = settings
     app.state.capabilities = registry
+    # GET /api/status's uptime_s (routes_pages) — monotonic so a wall-clock adjustment can't skew it.
+    app.state.started_at = time.monotonic()
 
     # --- Error envelope: registered ONCE here so EVERY error path returns the single
     # ``{"error": {"code", "message", "details"}}`` shape. ---
@@ -169,6 +187,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(routes_auth.router)
     app.include_router(routes_me.router)
     app.include_router(routes_reviews.router)
+    app.include_router(routes_usage.router)
+    app.include_router(routes_pages.router)
 
     @app.get("/healthz")
     async def healthz() -> JSONResponse:

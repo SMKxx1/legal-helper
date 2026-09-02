@@ -13,7 +13,7 @@ import asyncio
 import time
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session as DbSession
 
 from .. import crypto
@@ -24,6 +24,7 @@ from ..config import settings
 from ..db import SessionLocal, get_db
 from ..ingestion.docx import extract_docx_bytes
 from ..models import User
+from ..storage import bucket
 from ..telemetry import get_logger
 from . import reviews_repo
 from .errors import EngineError
@@ -87,6 +88,26 @@ def _parse_upload(data: bytes) -> str:
     return text
 
 
+def _store_document(db: DbSession, user: User, review, filename: str, data: bytes) -> list[str]:
+    """Archive the original ``.docx`` in the bucket (plan §4.5), then enforce the per-user
+    retention cap. Mutates ``review.doc_object_key``/``doc_bytes`` in place (persisted by the
+    caller's own commit) and returns warnings to fold into the review result: empty when the
+    bucket is disabled (an expected, silent state) OR the upload succeeded; ``["document_not_stored"]``
+    only on an actual upload failure while the bucket IS configured (fail-soft — the review still
+    succeeds)."""
+    if not bucket.enabled():
+        return []
+    key = bucket.put_document(user.id, review.id, filename, data)
+    if key is None:
+        log.warning("reviews.document_not_stored", review_id=review.id)
+        return ["document_not_stored"]
+    review.doc_object_key = key
+    review.doc_bytes = len(data)
+    db.flush()  # so enforce_retention's own SELECT sees this row's new key within the same txn
+    bucket.enforce_retention(db, user.id)
+    return []
+
+
 async def _preflight(user: User, db: DbSession) -> None:
     if not user.openrouter_key_enc:
         raise EngineError(409, "no_openrouter_key", "Add your OpenRouter key first.")
@@ -142,6 +163,7 @@ async def create_review(
                 status="running",
             )
             db.commit()
+            doc_warnings = _store_document(db, user, review, filename, data)
             started = time.perf_counter()
             try:
                 result = await asyncio.to_thread(
@@ -152,6 +174,7 @@ async def create_review(
                 raise EngineError(
                     502, error_code_for(exc), "The review could not be completed."
                 ) from exc
+            result.warnings.extend(doc_warnings)
             duration_ms = int((time.perf_counter() - started) * 1000)
             reviews_repo.complete_review(db, review, result, duration_ms=duration_ms)
             return JSONResponse(reviews_repo.result_to_json(review, result), status_code=200)
@@ -169,8 +192,11 @@ async def create_review(
         status="queued",
     )
     db.commit()
+    doc_warnings = _store_document(db, user, review, filename, data)
     review_id = review.id
-    asyncio.create_task(_run_deep_review(review_id, text, our_side, api_key, models))
+    asyncio.create_task(
+        _run_deep_review(review_id, text, our_side, api_key, models, doc_warnings)
+    )
     return JSONResponse(
         {"id": review_id, "status": "queued"},
         status_code=202,
@@ -179,10 +205,17 @@ async def create_review(
 
 
 async def _run_deep_review(
-    review_id: str, text: str, our_side: str, api_key: str, models: ModelChoice
+    review_id: str,
+    text: str,
+    our_side: str,
+    api_key: str,
+    models: ModelChoice,
+    doc_warnings: list[str],
 ) -> None:
     """The deep-mode background task. Opens its OWN DB session (the request's session is gone by
-    the time this runs) and always releases the concurrency slot it was submitted holding."""
+    the time this runs) and always releases the concurrency slot it was submitted holding.
+    ``doc_warnings`` carries forward any ``document_not_stored`` warning from the (already-done,
+    synchronous) bucket upload the request handler made before spawning this task."""
     from ..models import Review  # local import: avoids a module-level cycle with reviews_repo
 
     db = SessionLocal()
@@ -204,6 +237,7 @@ async def _run_deep_review(
             log.exception("reviews.deep_task_failed", review_id=review_id)
             reviews_repo.fail_review(db, review, "internal_error")
             return
+        result.warnings.extend(doc_warnings)
         duration_ms = int((time.perf_counter() - started) * 1000)
         reviews_repo.complete_review(db, review, result, duration_ms=duration_ms)
     finally:
@@ -223,6 +257,23 @@ def get_review(
     if review.status == "failed":
         return {"id": review.id, "status": "failed", "error": review.error}
     return review.result_json or {"id": review.id, "status": review.status}
+
+
+@router.get("/{review_id}/document")
+def get_review_document(
+    review_id: str, user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+):
+    """302 to a 15-minute presigned GET URL for the review's original ``.docx`` (plan §4.5).
+    Owner-only: :func:`reviews_repo.get_owned` returns ``None`` for another user's review, which
+    this maps to the SAME 404 as "no such review" — an access-control boundary must never leak
+    whether a resource merely doesn't exist vs. belongs to someone else."""
+    review = reviews_repo.get_owned(db, user, review_id)
+    if review is None or not review.doc_object_key:
+        raise EngineError(404, "not_found", "No stored document for this review.")
+    url = bucket.presigned_get_url(review.doc_object_key)
+    if url is None:
+        raise EngineError(404, "not_found", "The stored document is unavailable.")
+    return RedirectResponse(url, status_code=302)
 
 
 @router.get("")
@@ -256,6 +307,6 @@ def delete_review(
     review = reviews_repo.get_owned(db, user, review_id)
     if review is None:
         raise EngineError(404, "not_found", "No review with that id.")
-    # Bucket object deletion arrives in Phase 4 (plan §4.5) — for now, just the row.
+    bucket.delete_object(review.doc_object_key)  # plan §4.5: object goes, then the row
     db.delete(review)
     db.commit()

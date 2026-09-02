@@ -82,13 +82,29 @@ async function apiFetch(path, opts, { skipAuthReset } = {}) {
 }
 
 function showScreen(name) {
-  const screens = { signin: els["signin-screen"], addkey: els["addkey-screen"], ready: els["review-section"] };
+  const screens = { signin: els["signin-screen"], addkey: els["addkey-screen"], ready: els["ready-screen"] };
   Object.keys(screens).forEach((k) => screens[k] && screens[k].classList.toggle("hidden", k !== name));
   els["settings-toggle"].classList.toggle("hidden", name !== "ready");
   if (name !== "ready") {
     els.settings.classList.add("hidden");
     els["settings-toggle"].setAttribute("aria-expanded", "false");
+  } else {
+    switchTab(currentTab); // land on (or return to) whichever tab was last active
   }
+}
+
+/* ===== tabs: Review / History / Usage (only reachable once signed in with a key) ===== */
+let currentTab = "review";
+function switchTab(name) {
+  currentTab = name;
+  ["review", "history", "usage"].forEach((t) => {
+    els[t + "-section"].classList.toggle("hidden", t !== name);
+  });
+  els.tabs.querySelectorAll(".tab-btn").forEach((b) => {
+    b.classList.toggle("is-active", b.dataset.tab === name);
+  });
+  if (name === "history") loadHistory();
+  if (name === "usage") loadUsage();
 }
 
 function signOut(message) {
@@ -261,7 +277,16 @@ if (typeof Office !== "undefined")
         "settings-key",
         "settings-change-key",
         "settings-signout",
+        "ready-screen",
+        "tabs",
         "review-section",
+        "history-section",
+        "history-status",
+        "history-list",
+        "usage-section",
+        "usage-status",
+        "usage-tiles",
+        "usage-tables",
         "prereview",
         "our-side",
         "depth-toggle",
@@ -304,6 +329,9 @@ if (typeof Office !== "undefined")
         );
       };
 
+      els.tabs.querySelectorAll(".tab-btn").forEach((b) => {
+        b.onclick = () => switchTab(b.dataset.tab);
+      });
       els["settings-toggle"].onclick = () => {
         const closed = els.settings.classList.toggle("hidden");
         els["settings-toggle"].setAttribute("aria-expanded", closed ? "false" : "true");
@@ -662,6 +690,249 @@ function esc(s) {
 function fmtInt(n) {
   const v = Number(n);
   return Number.isFinite(v) ? Math.round(v).toLocaleString() : String(n == null ? "" : n);
+}
+
+// A dollar amount as "$1.23"; a non-numeric value (null cost on a still-running row) renders "—".
+function fmtCost(n) {
+  const v = Number(n);
+  return Number.isFinite(v) ? "$" + v.toFixed(2) : "—";
+}
+
+function fmtDate(iso) {
+  const d = iso ? new Date(iso) : null;
+  if (!d || isNaN(d.getTime())) return "";
+  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+
+/* ===== History tab — last 20 reviews (GET /api/reviews). "Open" re-renders the stored result
+ * into the Review tab (untouched by the live quick/deep cache); "Original .docx" streams the
+ * presigned download through an authenticated fetch; "Delete" needs a second click to confirm
+ * (no native confirm() dialog — some Office hosts block it). ===== */
+function setHistoryStatus(msg, isError) {
+  const el = els["history-status"];
+  if (!el) return;
+  el.textContent = msg || "";
+  el.classList.toggle("error", !!isError);
+}
+
+async function loadHistory() {
+  setHistoryStatus("Loading…");
+  els["history-list"].innerHTML = "";
+  try {
+    const resp = await apiFetch("/api/reviews?limit=20", { method: "GET" });
+    const body = parseJsonSafe(await resp.text());
+    if (!resp.ok) {
+      setHistoryStatus((body && body.error && body.error.message) || "Could not load history.", true);
+      return;
+    }
+    renderHistory(Array.isArray(body) ? body : []);
+  } catch (e) {
+    setHistoryStatus("Could not reach " + cfg.apiBase + ".", true);
+  }
+}
+
+function renderHistory(rows) {
+  if (!rows.length) {
+    setHistoryStatus("");
+    els["history-list"].innerHTML =
+      '<p class="status">No reviews yet — run one from the Review tab.</p>';
+    return;
+  }
+  setHistoryStatus("");
+  els["history-list"].innerHTML = rows
+    .map((r) => {
+      const rag = RAG[(r.risk_tier || "").toLowerCase()];
+      const tierHtml =
+        r.status === "failed"
+          ? '<span class="rag-pill failed">FAILED</span>'
+          : rag
+            ? `<span class="rag-pill ${rag.cls}">${rag.pill}</span>`
+            : "";
+      const docBtn = r.document_stored
+        ? `<button type="button" class="btn-ghost history-doc" data-id="${r.id}">Original .docx</button>`
+        : "";
+      const openDisabled = r.status === "done" ? "" : "disabled";
+      return `<div class="history-row">
+        <div class="history-row-top">
+          <span class="history-title">${esc(r.filename || "Untitled")}</span>
+          ${tierHtml}
+        </div>
+        <div class="history-meta">${esc(fmtDate(r.created_at))} &middot; ${esc(r.mode)} &middot; ${fmtCost(r.cost_usd)}</div>
+        <div class="history-actions">
+          <button type="button" class="btn-ghost history-open" data-id="${r.id}" ${openDisabled}>Open</button>
+          ${docBtn}
+          <button type="button" class="btn-ghost history-delete" data-id="${r.id}">Delete</button>
+        </div>
+      </div>`;
+    })
+    .join("");
+  els["history-list"].querySelectorAll(".history-open").forEach((b) => {
+    b.onclick = () => openHistoryReview(b.dataset.id, b);
+  });
+  els["history-list"].querySelectorAll(".history-doc").forEach((b) => {
+    b.onclick = () => openOriginalDocument(b.dataset.id, b);
+  });
+  els["history-list"].querySelectorAll(".history-delete").forEach((b) => {
+    b.onclick = () => deleteHistoryReview(b.dataset.id, b);
+  });
+}
+
+// "Open" — fetch the full stored result and render it into the Review tab via the SAME render()
+// the live flow uses. Deliberately does not touch reviews{}/viewMode (the live quick/deep cache):
+// this is a read of history, not a new run, so switching back to a live result stays possible.
+async function openHistoryReview(id, btn) {
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Opening…";
+  try {
+    const resp = await apiFetch(`/api/reviews/${encodeURIComponent(id)}`, { method: "GET" });
+    const body = parseJsonSafe(await resp.text());
+    if (!resp.ok || !isReviewBody(body)) {
+      setHistoryStatus("Could not open that review.", true);
+      return;
+    }
+    els.prereview.classList.add("hidden");
+    render(body);
+    els.runctl.classList.add("hidden"); // "re-run in other mode" doesn't apply to a historical view
+    els.runctl.innerHTML = "";
+    switchTab("review");
+    setStatus(`Viewing history — ${body.filename || "this review"}.`);
+  } catch (e) {
+    setHistoryStatus("Could not reach " + cfg.apiBase + ".", true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
+// "Original .docx" — GET .../document is bearer-authenticated and 302s to a presigned bucket URL,
+// so it can't be a plain <a href> (no way to attach the header). Fetch it (the browser follows the
+// redirect transparently) and hand the resulting bytes to the OS as a normal file open/save.
+async function openOriginalDocument(id, btn) {
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Opening…";
+  try {
+    const resp = await apiFetch(`/api/reviews/${encodeURIComponent(id)}/document`, {
+      method: "GET",
+    });
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (e) {
+    setHistoryStatus("Could not open the original document.", true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
+// Delete needs a second click within 3s to confirm — no native confirm() (some Office hosts block
+// it); the button's own label does the asking instead.
+async function deleteHistoryReview(id, btn) {
+  if (!btn.dataset.confirm) {
+    btn.dataset.confirm = "1";
+    const original = btn.textContent;
+    btn.textContent = "Confirm delete?";
+    btn.classList.add("confirm");
+    setTimeout(() => {
+      if (btn.dataset.confirm) {
+        delete btn.dataset.confirm;
+        btn.textContent = original;
+        btn.classList.remove("confirm");
+      }
+    }, 3000);
+    return;
+  }
+  delete btn.dataset.confirm;
+  btn.disabled = true;
+  try {
+    const resp = await apiFetch(`/api/reviews/${encodeURIComponent(id)}`, { method: "DELETE" });
+    if (!resp.ok && resp.status !== 204) {
+      setHistoryStatus("Could not delete that review.", true);
+      btn.disabled = false;
+      return;
+    }
+    loadHistory();
+  } catch (e) {
+    setHistoryStatus("Could not reach " + cfg.apiBase + ".", true);
+    btn.disabled = false;
+  }
+}
+
+/* ===== Usage tab — GET /api/me/usage as stat tiles + by-mode/by-model tables ===== */
+function setUsageStatus(msg, isError) {
+  const el = els["usage-status"];
+  if (!el) return;
+  el.textContent = msg || "";
+  el.classList.toggle("error", !!isError);
+}
+
+async function loadUsage() {
+  setUsageStatus("Loading…");
+  els["usage-tiles"].innerHTML = "";
+  els["usage-tables"].innerHTML = "";
+  try {
+    const resp = await apiFetch("/api/me/usage", { method: "GET" });
+    const body = parseJsonSafe(await resp.text());
+    if (!resp.ok) {
+      setUsageStatus((body && body.error && body.error.message) || "Could not load usage.", true);
+      return;
+    }
+    renderUsage(body || {});
+  } catch (e) {
+    setUsageStatus("Could not reach " + cfg.apiBase + ".", true);
+  }
+}
+
+function renderUsage(u) {
+  setUsageStatus("");
+  const tiles = [
+    ["Reviews (total)", fmtInt(u.reviews_total)],
+    ["Reviews (this month)", fmtInt(u.reviews_this_month)],
+    ["Spend (total)", fmtCost(u.cost_total_usd)],
+    ["Spend (this month)", fmtCost(u.cost_this_month_usd)],
+  ];
+  els["usage-tiles"].innerHTML = tiles
+    .map(
+      ([label, value]) =>
+        `<div class="usage-tile"><span class="num display">${esc(value)}</span><span class="label">${esc(label)}</span></div>`,
+    )
+    .join("");
+
+  const byMode = u.by_mode || {};
+  const quick = byMode.quick || { n: 0, cost_usd: 0 };
+  const deep = byMode.deep || { n: 0, cost_usd: 0 };
+  const byModel = Array.isArray(u.by_model) ? u.by_model : [];
+  const budget = u.budget || {};
+
+  let html = `<div class="section-h">By mode</div>
+    <table class="usage-table">
+      <thead><tr><th>Mode</th><th>Reviews</th><th>Cost</th></tr></thead>
+      <tbody>
+        <tr><td>Quick</td><td>${fmtInt(quick.n)}</td><td>${fmtCost(quick.cost_usd)}</td></tr>
+        <tr><td>Deep</td><td>${fmtInt(deep.n)}</td><td>${fmtCost(deep.cost_usd)}</td></tr>
+      </tbody>
+    </table>`;
+  if (byModel.length) {
+    html += `<div class="section-h">By model</div>
+      <table class="usage-table">
+        <thead><tr><th>Model</th><th>Calls</th><th>Cost</th></tr></thead>
+        <tbody>${byModel
+          .map(
+            (m) =>
+              `<tr><td>${esc(m.model)}</td><td>${fmtInt(m.calls)}</td><td>${fmtCost(m.cost_usd)}</td></tr>`,
+          )
+          .join("")}</tbody>
+      </table>`;
+  }
+  if (budget.monthly_cap_usd) {
+    const remaining = budget.remaining_usd;
+    html += `<p class="status">Monthly budget ${fmtCost(budget.monthly_cap_usd)}${remaining != null ? ` &middot; ${fmtCost(remaining)} remaining` : ""}</p>`;
+  }
+  els["usage-tables"].innerHTML = html;
 }
 
 function render(r) {
