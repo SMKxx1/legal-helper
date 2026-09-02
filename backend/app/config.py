@@ -25,6 +25,19 @@ LogFormat = Literal["console", "json"]
 
 _VALID_FORMATS = ("console", "json")
 
+#: Words people actually type into a deploy form. APP_ENV is a strict Literal, so without this a
+#: one-click deployer entering "production" — the obvious thing to write — gets a ValidationError
+#: at import and a crash-looping service, with nothing pointing at the word as the only problem.
+#: Genuine typos still fail loudly.
+_APP_ENV_SYNONYMS = {
+    "production": "prod",
+    "prd": "prod",
+    "live": "prod",
+    "development": "dev",
+    "local": "dev",
+    "testing": "test",
+}
+
 
 class Settings(BaseSettings):
     """Typed runtime settings, populated from the environment / ``.env``.
@@ -120,7 +133,10 @@ class Settings(BaseSettings):
     @field_validator("app_env", mode="before")
     @classmethod
     def _normalize_env(cls, v: object) -> object:
-        return v.strip().lower() if isinstance(v, str) else v
+        if not isinstance(v, str):
+            return v
+        cleaned = v.strip().lower()
+        return _APP_ENV_SYNONYMS.get(cleaned, cleaned)
 
     @field_validator("log_format", mode="before")
     @classmethod

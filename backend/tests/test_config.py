@@ -134,3 +134,34 @@ def test_openrouter_provider_only_deep_list_parses_multiple_and_blank() -> None:
         ).openrouter_provider_only_deep_list
         == ()
     )
+
+
+def test_app_env_accepts_what_a_deployer_actually_types() -> None:
+    """The one-click deploy form asks for APP_ENV as free text.
+
+    APP_ENV is a strict Literal, so "production" — the obvious thing to write — used to raise a
+    ValidationError at import and crash-loop the service, with nothing to suggest that the only
+    problem was the word.
+    """
+    for typed, expected in (
+        ("production", "prod"),
+        ("Production", "prod"),
+        (" PRODUCTION ", "prod"),
+        ("live", "prod"),
+        ("prd", "prod"),
+        ("development", "dev"),
+        ("local", "dev"),
+        ("testing", "test"),
+        ("prod", "prod"),
+        ("dev", "dev"),
+    ):
+        assert Settings(_env_file=None, app_env=typed).app_env == expected, typed
+
+
+def test_a_real_typo_in_app_env_still_fails_loudly() -> None:
+    """Forgiving the known synonyms must not turn every value into a silent default."""
+    from pydantic import ValidationError
+
+    for typo in ("prodd", "banana", ""):
+        with pytest.raises(ValidationError):
+            Settings(_env_file=None, app_env=typo)
