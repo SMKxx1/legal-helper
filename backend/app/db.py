@@ -34,7 +34,18 @@ def _make_engine():
         # Ensure the parent directory exists for file-based SQLite URLs.
         if url.startswith("sqlite:///"):
             db_path = Path(url.replace("sqlite:///", "", 1))
-            db_path.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                db_path.parent.mkdir(parents=True, exist_ok=True)
+            except OSError as exc:
+                # Import-time failure, so a bare PermissionError here is a traceback with no
+                # explanation during boot. Say what is actually wrong: in a container the app user
+                # usually cannot write the image's working directory (see the Dockerfile's
+                # /app/data), and the real fix is nearly always to point DATABASE_URL at Postgres.
+                raise RuntimeError(
+                    f"cannot create the SQLite directory {db_path.parent!s} ({exc}). "
+                    "Set DATABASE_URL to a Postgres URL, or make that path writable by the "
+                    "process user."
+                ) from exc
     # Headroom for the FastAPI threadpool + multiple concurrent review workers
     # (the review-concurrency semaphore is the real bound; this avoids transient
     # pool-timeout errors during a burst of uploads). Recycle stale connections.

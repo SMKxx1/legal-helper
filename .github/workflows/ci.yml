@@ -17,15 +17,13 @@ jobs:
         with:
           python-version: "3.13"
 
+      # The Makefile lives at the repo root and owns backend/.venv, so both targets run from
+      # here. (`cd backend && make check` cannot work — there is no makefile in backend/.)
       - name: Install dependencies
-        run: |
-          cd backend
-          pip install -r requirements.txt
+        run: make install PYTHON=python3
 
       - name: Run checks (ruff + mypy + pytest)
-        run: |
-          cd backend
-          make check
+        run: make check
 
   addin:
     runs-on: ubuntu-latest
@@ -38,11 +36,56 @@ jobs:
           node-version: "20"
 
       - name: Install dependencies
-        run: |
-          cd word-addin
-          npm install
+        run: npm install --prefix word-addin
 
       - name: Run tests
+        run: make addin-test
+
+  # Guards the "Deploy on Railway" path: someone clicking that button gets this image, and the
+  # click-path deploys the app service BEFORE Postgres exists. That first boot has no
+  # DATABASE_URL, so it must fall back to SQLite and degrade gracefully rather than crash — which
+  # it did not, until the image was given a writable /app/data. No unit test can catch that:
+  # it only appears as the unprivileged user inside the built image.
+  cold-start:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the image Railway builds
+        run: docker build -t legal-helper-ci .
+
+      - name: Boot it with no database, exactly like a first deploy
         run: |
-          cd word-addin
-          npm test
+          docker run -d --name lh-ci -p 8099:8099 \
+            -e PORT=8099 -e APP_ENV=prod \
+            -e APP_SECRET_KEY=ci-cold-start-passphrase \
+            -e ADDIN_ID=11111111-2222-3333-4444-555555555555 \
+            legal-helper-ci
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -m 5 -w '%{http_code}' http://127.0.0.1:8099/healthz || true)
+            [ "$code" = "200" ] && break
+            sleep 2
+          done
+          if [ "$code" != "200" ]; then
+            echo "::error::the image did not become healthy with no DATABASE_URL"
+            docker logs lh-ci
+            exit 1
+          fi
+
+      - name: The pages a new deployer needs must all serve
+        run: |
+          for path in / /api/status /manifest.xml /addin/taskpane.html; do
+            code=$(curl -s -o /dev/null -m 8 -w '%{http_code}' "http://127.0.0.1:8099$path")
+            echo "$path -> $code"
+            [ "$code" = "200" ] || { echo "::error::$path returned $code"; docker logs lh-ci; exit 1; }
+          done
+
+      - name: Missing optional config disables a capability, never the app
+        run: |
+          curl -s http://127.0.0.1:8099/api/status \
+            | python3 -c "import sys,json; c=json.load(sys.stdin)['capabilities']; \
+                assert c['bucket']=='disabled', c; assert c['database']=='enabled', c; print('degraded cleanly:', c)"
+
+      - name: Tear down
+        if: always()
+        run: docker rm -f lh-ci || true

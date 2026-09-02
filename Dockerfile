@@ -14,6 +14,11 @@ COPY backend/alembic ./alembic
 COPY backend/alembic.ini ./
 COPY playbook /playbook
 COPY word-addin /word-addin
+# With no DATABASE_URL the app falls back to SQLite at ./data/app.db — the "first deploy can run
+# without Postgres" path the workshop walks through. Everything above is COPYed as root, so the
+# unprivileged runtime user cannot create that directory itself: without this the container dies
+# on boot with `PermissionError: 'data'` instead of degrading gracefully.
+RUN mkdir -p /app/data && chown -R app:app /app/data
 USER app
 EXPOSE 8000
 CMD ["sh", "-c", "python -m app.db_migrate && uvicorn app.main:create_app --factory --host 0.0.0.0 --port ${PORT:-8000}"]
