@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "description": "NDA review-engine evaluation corpus. Paths are relative to this manifest's directory (backend/eval/corpus). Gold files follow the schema documented in docs/EVALUATION.md.",
+  "thresholds": {
+    "false_green_budget": 0,
+    "must_find_recall_floor": 0.8
+  },
+  "cases": [
+    {
+      "id": "clean-mutual",
+      "doc": "docs/clean_mutual.md",
+      "mode": "quick",
+      "scope": "whole",
+      "gold": "gold/clean_mutual.json",
+      "notes": "Amperesand standard mutual NDA, cosmetically reworded only. Specificity anchor: a clean pass (green/yellow) is correct."
+    },
+    {
+      "id": "hostile-edits",
+      "doc": "docs/hostile_edits.md",
+      "mode": "deep",
+      "scope": "whole",
+      "gold": "gold/hostile_edits.json",
+      "notes": "Four planted adverse edits: survival term slashed to 3 months, governing law flipped to the Cayman Islands, a one-way uncapped indemnity added, injunctive relief waived."
+    },
+    {
+      "id": "deleted-required-clause",
+      "doc": "docs/deleted_required_clause.md",
+      "mode": "deep",
+      "scope": "whole",
+      "gold": "gold/deleted_required_clause.json",
+      "notes": "The Return/Destruction of Confidential Information clause is entirely removed and sections renumbered. Deep mode so coverage can detect the absence."
+    },
+    {
+      "id": "not-an-nda",
+      "doc": "docs/not_an_nda.md",
+      "mode": "quick",
+      "scope": "whole",
+      "gold": "gold/not_an_nda.json",
+      "notes": "A services invoice. Routing must flag it (is_nda=false or reasons non-empty) rather than returning a confident green."
+    }
+  ]
+}

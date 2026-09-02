@@ -1,0 +1,53 @@
+# Tooling config for the backend (config-only: no [build-system]/[project] — the app runs from source
+# via `pythonpath=.`, see pytest.ini). pytest config stays in pytest.ini.
+#
+# These ruff/mypy settings MIRROR the old engine (nda-review-cloud) so the P1 code port lints/types
+# under the identical rules and drops in without churn.
+
+[tool.ruff]
+line-length = 88
+# target-version mirrors the old engine (py311) even though we run 3.13 — this is the syntax level
+# ruff lints/rewrites against, and keeping it identical means the ported code passes unchanged.
+target-version = "py311"
+extend-exclude = [".venv", "build", "dist"]
+
+[tool.ruff.lint]
+# E  pycodestyle errors      F   pyflakes (incl. F401 unused-import, F811 redefinition)
+# I  isort import ordering    UP  pyupgrade (modern syntax)
+# B  flake8-bugbear          SIM flake8-simplify
+select = ["E", "F", "I", "UP", "B", "SIM"]
+# E501 (line length) is enforced for CODE by the formatter; long comment/string lines (URLs, prose
+# rationale) are deliberately allowed rather than mangled. UP042: the `(str, Enum)` pattern is
+# intentional for stable value serialization. SIM105: a documented try/except/pass reads clearer than
+# contextlib.suppress here.
+ignore = [
+    "E501",
+    "UP042",
+    "SIM105",
+]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's dependency-injection markers are evaluated once at import as defaults; they are NOT the
+# mutable-default-argument footgun B008 warns about. Kept from the old engine for the P1 route port.
+extend-immutable-calls = [
+    "fastapi.Depends", "fastapi.Query", "fastapi.Header", "fastapi.Path",
+    "fastapi.Cookie", "fastapi.Form", "fastapi.File", "fastapi.Body", "fastapi.Security",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Package __init__ files intentionally re-export their public surface; F401 there is by design.
+"**/__init__.py" = ["F401"]
+
+# ---------------------------------------------------------------------------------------------------
+# mypy: static type checking, applied pragmatically (typed where it matters). Lenient by default so it
+# surfaces real errors without drowning in un-annotated-legacy noise; tighten per-module over time.
+# Run: `mypy app`.
+[tool.mypy]
+python_version = "3.13"
+files = ["app"]
+ignore_missing_imports = true      # not all third-party stubs are installed
+check_untyped_defs = true          # type-check inside un-annotated functions too
+warn_redundant_casts = true
+warn_unused_ignores = true
+no_implicit_optional = true
+exclude = ['(^|/)(alembic|tests)/']

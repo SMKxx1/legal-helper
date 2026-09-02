@@ -1,0 +1,424 @@
+{
+  "contract_type": "nda",
+  "version_no": 4,
+  "variant_key": "SG_Individual_Mutual",
+  "variant": { "jurisdiction": "SG", "counterparty": "individual", "mutuality": "mutual" },
+  "entity": "Amperesand Pte Ltd",
+  "status": "draft-v4 (internal assistive; a human reviewer is the final authority)",
+  "defaults": {
+    "perspective_preference": "Mutual reciprocal (mNDA): both Parties are Disclosing and Receiving and positions are symmetrical, but as a practical matter Amperesand is overwhelmingly the substantive discloser of business/technical IP and the individual counterparty (a natural person, e.g. a prospective employee, consultant, advisor, or founder) discloses little; calibrate protections to Amperesand as the real-world Disclosing Party while keeping the form mutual.",
+    "our_role": "both",
+    "governing_law": "Singapore",
+    "forum": "SIAC arbitration under prevailing SIAC Rules, seat Singapore, single arbitrator, English; court carve-out for injunctive/equitable relief in any court of competent jurisdiction (template Clause 16 + Clause 12)",
+    "term_standard": "Agreement term 1 year from the Effective Date, terminable earlier by either Party on written notice (template Clause 8).",
+    "survival_standard": "Mutual NDA standard: confidentiality obligations survive for 2 years from the Effective Date, with trade secrets protected for as long as they constitute trade secrets (the canonical SG mNDA survival). An executed SG_Individual deal used a flat 3 years from the Effective Date with NO trade-secret tail - treat 3-year flat as an acceptable fallback but resist the silent drop of the trade-secret tail. NOTE: the unilateral per-disclosure default (5yr ordinary CI + uncapped trade-secret tail, 3yr fallback) applies to UNILATERAL individual NDAs; this is a MUTUAL type, so the mNDA 2-year-from-Effective-Date + trade-secret-tail standard governs.",
+    "required_carveouts": [
+      "prior_possession (already in the Receiving Party's or its Representatives' possession/known before disclosure, provided the source is not known to be bound by a confidentiality duty)",
+      "public_domain (is or comes into the public domain through no fault or breach by the Receiving Party or its Representatives)",
+      "third_party (received from a third party not known to be under any confidentiality obligation)",
+      "independent_development (independently developed, on its own or jointly, without regard or reference to the Confidential Information)",
+      "written_authorization (approved for release or use by written authorization of the Disclosing Party)"
+    ],
+    "counsel_must_confirm": [
+      "ADOPTED (pending counsel): survival standard for SG_Individual_Mutual = 2 years from the Effective Date + perpetual trade-secret tail (the canonical SG mNDA standard). An executed deal used 3-year flat from the Effective Date with NO trade-secret tail; confirm whether to standardize on the 2yr+trade-secret form or accept the 3yr-flat form, and guard against silent removal of the trade-secret tail where Amperesand is the primary discloser of technical IP.",
+      "ADOPTED (pending counsel): the individual-counterparty template retains entity-style 'Representatives' including the Receiving Party's 'holding companies or its related corporations (as defined in the Singapore Companies Act 1967)' (observed in an executed deal). For a natural-person counterparty this group-disclosure language is largely inapt on the Individual's side; confirm whether to narrow the Individual's Representatives to personal advisers (lawyer, accountant, immediate professional team) on a need-to-know basis while preserving Amperesand's group/affiliate Representatives.",
+      "ADOPTED (pending counsel): an executed CI definition imposes a 15-day oral-to-writing memorialization burden and a marking-at-disclosure requirement (a deviation from the baseline template, which has NO marking requirement and NO oral-to-writing deadline). Confirm whether to revert to the no-marking/no-deadline baseline (more protective of Amperesand's oral disclosures) or retain the executed-deal marking construct.",
+      "PDPA (Personal Data Protection Act 2012 of Singapore) governs any shared personal data swept into Confidential Information; an executed deal expressly defines 'Personal Data (as defined in the PDPA 2012 of Singapore)' as a CI limb. Confirm PDPA handling/transfer-limitation, especially because an individual counterparty's own personal data (and any personal data of third parties the individual handles) is directly in scope.",
+      "Individual-enforceability realism: a natural person typically lacks the assets, insurance, and document-management infrastructure of a company. Confirm that the remedy strategy leans on injunctive/equitable relief and return/destruction rather than monetary damages, and that the agreement remains operationally workable for a single person (no per-Representative undertaking requirement, no mandated litigation against the individual's own advisers).",
+      "Electronic Transactions Act 2010 (Singapore) is the e-signature statutory basis (an executed deal cites it expressly); ensure no ESIGN/UETA (US) or jury-trial-waiver boilerplate bleeds in even where the individual counterparty is US-domiciled (an observed executed counterparty was US-domiciled, yet the agreement remained Singapore-law + SIAC)."
+    ]
+  },
+  "positions": [
+    {
+      "clause_type": "confidentiality_definition",
+      "title": "Definition of Confidential Information",
+      "standard_position": "Confidential Information means any and all information relating to the Purpose disclosed by or on behalf of the Disclosing Party (or to an authorized third party acting for the Receiving Party) that is marked or should reasonably be understood to be confidential given the nature of the information and circumstances of disclosure, expressly including (a) the existence/status of discussions and negotiations, (b) the terms of the Agreement, (c) business/affairs/customers/suppliers/plans/market-opportunity information and IP/operations/processes/product/know-how/technical/designs/trade-secrets/software of the Disclosing Party, (d) information/findings/data/analysis derived from the Confidential Information, (e) any shared Personal Data (as defined in the PDPA 2012 of Singapore), and (f) other information identified as confidential at disclosure. The Amperesand-preferred baseline imposes NO marking requirement and NO oral-to-writing confirmation deadline; an executed individual deal added a 15-day oral-to-writing memorialization burden and a marking-at-disclosure requirement (a less-protective deviation - see counsel_must_confirm).",
+      "risk_weight": 4,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Definition hard-scoped to a single project, role, or category so that Amperesand's broader shared information (financials, strategy, personnel, customers, OPS/power-electronics designs) falls outside protection where Amperesand is the primary discloser of IP to the individual.",
+        "Asymmetric, individual-only expansions of CI scope not mirrored for Amperesand (rare with a natural person but possible where the individual is a founder/inventor seeking to protect their own pre-existing IP) - resist unless reciprocal and Purpose-tethered.",
+        "Runaway scope beyond the Purpose or beyond formal disclosure: 'whether or not related to the Purpose' / constructive or inferred-knowledge catch-alls (information the individual gains by observation/overhearing) that create inadvertent-breach exposure - cabin to disclosures made for the Purpose.",
+        "A fixed oral-to-writing memorialization deadline (e.g., an observed 15 days) combined with a strict marking-at-disclosure requirement, which can cause Amperesand's own oral/visual disclosures to lose protection if not transcribed in time - revert to the no-marking/no-deadline baseline where negotiable.",
+        "Stripping limb (e) (shared Personal Data / PDPA hook) where the engagement involves the individual handling personal data - the PDPA hook must remain on Singapore paper.",
+        "Burden-of-proof-on-Receiving-Party language combined with an unbounded 'by its nature' catch-all that gives Amperesand no marking safe harbor when Amperesand is the recipient."
+      ],
+      "acceptable_fallbacks": [
+        "The 'marked OR should reasonably be understood to be confidential' construct observed in executed paper is acceptable PROVIDED the 15-day oral-to-writing deadline is removed or extended and does not become a trap for Amperesand's oral disclosures.",
+        "Express inclusion of the existence/terms of the Agreement and the fact of negotiations as Confidential Information (observed in executed paper, limbs (a)/(b)) - more protective; retain.",
+        "A narrowed Representatives chain for the individual's side (personal professional advisers only) while Amperesand retains its group Representatives - acceptable and appropriate for a natural-person counterparty."
+      ]
+    },
+    {
+      "clause_type": "permitted_purpose",
+      "title": "Permitted Purpose",
+      "standard_position": "Confidential Information may be used and disclosed solely for a single, narrowly defined 'Purpose' stated in the recitals - for an individual counterparty, exploring a potential business relationship between the Parties (e.g., a potential employment, consulting, advisory, or founding engagement) - and for no other purpose (template recitals + Clause 4 use limitation). An executed deal used the generic 'explore a potential business relationship between the Parties'; the baseline template variant references '[explore a potential employment relationship between the Parties]'.",
+      "risk_weight": 4,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Purpose drafted so broadly it lets the individual use Amperesand's CI for their own competing venture, future employer, or personal commercial activities beyond evaluating the contemplated relationship - cabin to evaluation of the specific relationship only.",
+        "Purpose extending beyond evaluation to ongoing 'activities arising from the relationship,' permitting open-ended operational use of CI without a separate definitive engagement/employment agreement - limit to evaluation; defer operational-use rights to the definitive agreement.",
+        "Disclosing-party-controlled or individual-controlled open-ended catch-all expanding permitted use - strike.",
+        "Anti-reverse-engineering / design-around prohibition embedded in the use/purpose clause broad enough to constrain the individual's own pre-existing skills and general industry knowledge (residuals concern is acute for a natural person who carries know-how in their head) - narrow to misappropriation of disclosed CI only, and conversely resist any such restriction that would bind Amperesand's engineers.",
+        "Unfilled bracketed/placeholder Purpose language left in an executed agreement creating scope ambiguity - do not sign until the Purpose is finalized to one complete definition (the baseline template carries a bracketed '[explore a potential employment relationship]' placeholder that must be resolved)."
+      ],
+      "acceptable_fallbacks": [
+        "A specific engagement framing ('explore a potential employment/consulting relationship between the Parties') that narrows rather than broadens scope - acceptable and preferred.",
+        "The generic 'explore a potential business relationship between the Parties' framing observed in executed paper - acceptable provided use is confined to evaluating that relationship."
+      ]
+    },
+    {
+      "clause_type": "exclusions_carveouts",
+      "title": "Exclusions from Confidential Information",
+      "standard_position": "Five exclusions: prior possession (provided the source is not known to be under a confidentiality duty); public domain (no fault/breach); third-party receipt (no known confidentiality duty); independent development (without regard or reference to the CI); approved-for-release by written authorization. Compelled disclosure is handled separately as Required Disclosure (Clause 3), not as a sixth exclusion (template Clause 2).",
+      "risk_weight": 4,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Independent-development carve-out entirely absent - exposes Amperesand to confidentiality/IP entanglement on its own R&D that overlaps the individual's contributed knowledge, and conversely fails to protect the individual's own pre-existing know-how.",
+        "Prior-possession / prior-knowledge carve-out entirely absent - especially important for an individual who brings pre-existing personal skills and experience to the engagement.",
+        "Severely truncated carve-out set (only two or three) where prior possession AND independent development are both missing.",
+        "Subjective or distorted carve-out tests that defeat legitimate exclusions - e.g., a public-domain test drafted as 'through Receiving Party breach only' that fails to cover information already public at disclosure, or a prior-possession carve-out conditioned on impossible evidentiary proof.",
+        "No compelled-disclosure mechanism (information neither carved out nor covered by a Required Disclosure clause), leaving the Receiving Party unable to comply with a court/regulatory order without breaching."
+      ],
+      "acceptable_fallbacks": [
+        "A prior-possession carve-out conditioned on 'the source of such information is not known by the Receiving Party to be bound by a contractual obligation of confidentiality' (observed in executed paper) - acceptable; a reasonable refinement of the baseline.",
+        "An independent-development carve-out limited to development 'without use of or reference to' the CI - acceptable.",
+        "A 'reasonably demonstrable' prior-possession standard placing a light evidentiary burden on the recipient - acceptable if not extended to all carve-outs."
+      ]
+    },
+    {
+      "clause_type": "obligations_of_confidentiality",
+      "title": "Confidentiality Obligations",
+      "standard_position": "The Receiving Party holds all Confidential Information in strict confidence, does not disclose it to any third party without the Disclosing Party's prior written approval, uses it solely for the Purpose, applies at least the same degree of care as for its own confidential information of like importance (but never less than reasonable care), limits access to Representatives on a strict need-to-know basis, remains fully responsible for its Representatives' breaches, does not copy/record except as strictly necessary for the Purpose, and promptly notifies the Disclosing Party of any loss or unauthorized disclosure - on a mutual/reciprocal basis (template Clause 4). For an individual counterparty, 'Representatives' on the Individual's side should be narrowed to personal need-to-know professional advisers; entity-style group Representatives (holding companies / related corporations) are inapt for a natural person.",
+      "risk_weight": 4,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Prior written consent of the Disclosing Party required before the Receiving Party may make ANY copies of Confidential Information (impedes ordinary review/use) - resist.",
+        "Oral/visual disclosures protected only if reduced to writing and marked within a fixed deadline (an observed 15 days), risking loss of protection for Amperesand's own oral disclosures - prefer the no-deadline baseline.",
+        "Broad commercial-use or 'no use/exploitation for any commercial purpose without written approval' restriction exceeding the Purpose limitation - refuse.",
+        "Reverse-engineering / design-around / derivative-works use-restriction broad enough to bind Amperesand's INDEPENDENT development OR the individual's own pre-existing skills and residual know-how, with no independent-development/residual carve-in - resist or carve out.",
+        "Mandatory affirmative-enforcement obligation requiring the Receiving Party to take 'all reasonable measures (including but not limited to court proceedings)' against its own Representatives at its own cost (present verbatim in an executed deal) - push back; for an individual it is unrealistic to mandate that the person sue their own advisers.",
+        "Requirement that each Representative individually execute identical written undertakings before any access as a mandatory obligation on the Receiving Party (operationally unworkable, doubly so for an individual) - refuse.",
+        "Entity/group disclosure rights extended to the Individual's 'holding companies or related corporations' that make no sense for a natural person and create an undefined disclosure universe - narrow the Individual's Representatives to personal professional advisers.",
+        "Securities-trading / MNPI affirmative-compliance obligation or AI-training prohibition bolted onto the confidentiality clause - refuse or scope-limit/reciprocate."
+      ],
+      "acceptable_fallbacks": [
+        "'Same degree of precaution... but in no event less than reasonable care' (template wording, reproduced in executed paper) - retain.",
+        "A carve-out releasing the Receiving Party's vicarious responsibility for a Representative once that Representative enters a separate confidentiality agreement with the Disclosing Party or is bound by an existing legal/professional duty (observed in executed paper) - acceptable.",
+        "A copy-restriction limited to 'except as strictly necessary for the Purpose and except as permitted under [return/destruction]' (observed in executed paper) - acceptable; equivalent to the template intent.",
+        "An option (not obligation) for the Disclosing Party to require Representatives to enter a confidentiality agreement in an acceptable form - acceptable as a Disclosing-Party right.",
+        "An affirmative enforcement obligation against the Receiving Party's own Representatives is acceptable only as vicarious liability, cabined to reasonable measures, not mandated litigation."
+      ]
+    },
+    {
+      "clause_type": "permitted_disclosures",
+      "title": "Permitted Disclosures (Representatives and Compelled)",
+      "standard_position": "The Receiving Party may disclose Confidential Information (a) to its Representatives on a need-to-know basis for the Purpose, remaining responsible for their compliance, and (b) where compelled by a valid court order or governmental/regulatory authority with jurisdiction (including, on Singapore paper, the Singapore Exchange Securities Trading Limited), provided it (i) gives reasonable prior written notice to the extent not legally prohibited, (ii) discloses only the minimum legally required, and (iii) uses reasonable efforts to obtain confidential treatment, with prompt post-hoc notice if advance notice was impossible - all rights mutual/symmetrical (template Clauses 3 and 4). For an individual counterparty, the Individual's permitted disclosees are limited to personal need-to-know professional advisers.",
+      "risk_weight": 3,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Open-ended permitted-disclosee classes for the individual (e.g., 'any person the Individual deems appropriate') without a need-to-know gate and direct confidentiality flow-down.",
+        "One-sided disclosure rights letting the individual push Amperesand CI to a current/prospective employer, business partners, or financing sources without Amperesand's consent.",
+        "Requiring prior written notice to the counterparty before the Receiving Party may share with its OWN need-to-know Representatives - operationally unworkable.",
+        "Fixed long advance-notice periods for compelled disclosure that cannot be met under urgent court/government orders.",
+        "Shifting the cost of resisting/limiting compelled disclosure onto Amperesand as Disclosing Party as a baseline term.",
+        "Broad non-announcement/non-publicity clause read so broadly it could constrain the individual's or Amperesand's legitimate communications, expanding beyond the template's No Publicity clause (Disclosing-Party-approval gate) - resist."
+      ],
+      "acceptable_fallbacks": [
+        "An express SGX (Singapore Exchange) regulatory carve-out within the compelled-disclosure pathway (present in executed paper) - acceptable on Singapore paper.",
+        "'Reasonable prior written notice to the extent not legally prohibited' plus minimize-and-seek-confidential-treatment (template/observed wording) - acceptable; this is the standard set."
+      ]
+    },
+    {
+      "clause_type": "compelled_disclosure",
+      "title": "Required Disclosure",
+      "standard_position": "Where the Receiving Party (or its Representative) is obligated or requested to disclose Confidential Information by a valid court order or governmental/regulatory authority (including the Singapore Exchange Securities Trading Limited), it must (i) to the extent not legally prohibited, give the Disclosing Party reasonable prior written notice, (ii) disclose only the Confidential Information required, and (iii) use reasonable efforts to ensure confidential treatment; if it cannot notify before disclosure, it must, to the extent permitted by law, inform the Disclosing Party of the full circumstances and information disclosed as soon as reasonably practicable (template Clause 3).",
+      "risk_weight": 3,
+      "presence": "required",
+      "walk_away_triggers": [
+        "No compelled-disclosure / Required-Disclosure mechanism at all, leaving the Receiving Party unable to comply with a court or regulatory order without breaching the NDA.",
+        "Obligation to 'provide all assistance and take such steps as the Disclosing Party may require' to prevent/minimise disclosure, effectively ceding control of the response to legal process - cabin to reasonable cooperation.",
+        "Fixed long advance-notice periods (e.g., 30 days) that cannot be met under urgent court/government orders.",
+        "A regulatory carve-out so narrow it omits subpoenas/court orders, or that strips the notice/minimization protections."
+      ],
+      "acceptable_fallbacks": [
+        "A formulation with an express SGX inclusion (observed in executed paper) - acceptable; functionally the template's notify/minimize/seek-confidential-treatment set.",
+        "Compelled disclosure structured as a carve-out within the exclusions list rather than a standalone clause, PROVIDED the notice and protective-treatment obligations remain."
+      ]
+    },
+    {
+      "clause_type": "term_of_confidentiality",
+      "title": "Term and Confidentiality Survival",
+      "standard_position": "The Agreement commences on the Effective Date and expires 1 year from the Effective Date, terminable earlier by either Party on written notice. Confidentiality obligations survive any termination/expiration. Amperesand-preferred standard (canonical SG mNDA): 2 years from the Effective Date + trade secrets protected for as long as they so qualify. An executed SG_Individual deal used a flat 3 years from the Effective Date with NO trade-secret tail.",
+      "risk_weight": 4,
+      "presence": "required",
+      "walk_away_triggers": [
+        "No post-termination survival at all, or confidentiality co-terminous with the (short) agreement term, leaving disclosed information unprotected once the term ends.",
+        "Flat survival measured from the Effective Date that equals or is shorter than the agreement term, producing zero or near-zero post-expiry protection.",
+        "Survival of 1 year or shorter when Amperesand is the substantive discloser and no trade-secret carve-out is included.",
+        "Perpetual or indefinite survival imposed on the individual or on Amperesand-as-recipient (rare with a natural person) - resist open-ended 'as long as it qualifies as confidential under applicable law' tails when they bind Amperesand.",
+        "Internally contradictory survival drafting (or a spelled-out number disagreeing with its parenthetical figure) that a court could read as either expiring with the agreement or as perpetual - fix to a clear finite period before signing.",
+        "Silent drop of the trade-secret tail in an Amperesand-paper deal where Amperesand is the primary discloser of technical IP (as occurred in an executed deal, which used 3-year flat with no trade-secret continuation) - reinstate the trade-secret tail where negotiable."
+      ],
+      "acceptable_fallbacks": [
+        "3-year flat survival from the Effective Date (an observed executed form) - acceptable as a fallback; in fact a year longer than the 2-year canonical mNDA standard, though it omits the trade-secret tail. Prefer pairing it with a trade-secret carve-out.",
+        "2-year survival from the Effective Date + perpetual trade-secret tail (canonical SG mNDA standard) - the preferred form.",
+        "Survival re-anchored to termination/expiry rather than the Effective Date - acceptable and more protective for Amperesand as the substantive discloser."
+      ]
+    },
+    {
+      "clause_type": "survival",
+      "title": "Survival of Obligations",
+      "standard_position": "Each Party's rights and obligations regarding Confidential Information survive any termination or expiration of the Agreement for the confidentiality-survival period (2 years from the Effective Date on the canonical mNDA standard; 3 years from the Effective Date in an executed individual deal), independent of the agreement term; under the Amperesand-preferred form the trade-secret tail survives for as long as the information qualifies as a trade secret (template Clause 8).",
+      "risk_weight": 4,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Survival provision that lets the obligations lapse entirely on termination of the agreement term, with no independent survival of confidentiality.",
+        "Ambiguity over which clauses survive (a bare 'this section survives' list that omits the core confidentiality obligations).",
+        "Survival keyed to retention period of backup/archived copies such that obligations effectively extend indefinitely for any retained data when Amperesand is the recipient."
+      ],
+      "acceptable_fallbacks": [
+        "A single survival sentence ('each Party's rights and obligations... will survive... for a period of three (3) years from the Effective Date', observed in executed paper) - acceptable; clear and finite, though it lacks the trade-secret tail.",
+        "An explicit enumerated survival list of the confidentiality and miscellaneous clauses - acceptable provided the core confidentiality and use-restriction clauses are included."
+      ]
+    },
+    {
+      "clause_type": "return_destruction",
+      "title": "Return or Destruction of Confidential Information",
+      "standard_position": "On the Disclosing Party's written request or upon expiration/termination, the Receiving Party must within 14 days return or destroy (at its election) all documents and tangible materials representing the Disclosing Party's Confidential Information and all copies, except it may retain one (1) archival copy (including automatic archiving/back-up records) solely to perform surviving obligations and as required by law, court, regulator, or internal audit/compliance procedures, with the Agreement continuing to apply to any retained copy (template Clause 7).",
+      "risk_weight": 3,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Retention satisfied by reference to the Receiving Party's own record-retention schedule or internal document-retention policy, letting the counterparty keep Amperesand CI for as long as its policies permit - renders the destroy obligation illusory (less common with an individual, but watch for it where the individual is backed by an employer's IT systems).",
+        "Open-ended/indefinite retention of backup or archival copies with no sunset and a perpetual confidentiality tail, especially where it effectively negates destruction of all ESI.",
+        "Broad carve-out permitting retention of derivative work product (notes, summaries, analyses) so that materials derived from Amperesand CI need not be returned or destroyed.",
+        "Return-only obligation with no destruction option and no certification mechanism, forcing physical return of all ESI.",
+        "Loss of any trigger for return on demand - the template's on-demand AND on-expiry trigger is a key protection and must be preserved.",
+        "No practical mechanism for an individual to certify destruction of personal devices/cloud accounts where Amperesand CI may reside - consider requiring a destruction certification for a natural-person counterparty."
+      ],
+      "acceptable_fallbacks": [
+        "The template's single-archival-copy retention (including automatic archiving/back-up) solely for surviving obligations and as required by law/court/regulator/audit (observed in executed paper) - acceptable; this is the standard.",
+        "A certification-of-destruction requirement - acceptable and in fact a stronger control than the template; adopt where offered, particularly useful for an individual with personal devices."
+      ]
+    },
+    {
+      "clause_type": "no_license_ip",
+      "title": "No Transfer of Rights, Title, or Interest",
+      "standard_position": "The Disclosing Party retains all right, title and interest in its Confidential Information (including copies and extracts) and grants no licenses or rights except as expressly set forth; nothing grants any license to, or waiver of, any patents, copyrights, trademarks, or mask works (template Clause 10).",
+      "risk_weight": 3,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Any IP assignment, vesting, or work-for-hire obligation requiring Amperesand (as recipient) to assign IP, inventions, or 'derivatives of Confidential Information' it creates - strike or carve out Amperesand's pre-existing and independently developed IP. (Note: genuine work-product/invention-assignment belongs in a separate employment/consulting agreement, NOT this NDA.)",
+        "An NDA-embedded invention-assignment or 'all IP created during the relationship vests in Amperesand' clause that prematurely captures the individual's contributions outside a proper employment/consulting agreement, or conversely that purports to assign Amperesand IP to the individual - keep IP ownership out of the NDA.",
+        "'Derived directly or indirectly' or 'in the course of interaction' IP-capture language sweeping in either party's own innovations that merely touch the other's information - require a clear carve-out for pre-existing/independently developed/residual-knowledge IP.",
+        "Any provision deeming disclosure an implied license or waiver of patent/copyright/trademark/mask-work rights, or granting the recipient an affirmative license to the discloser's IP."
+      ],
+      "acceptable_fallbacks": [
+        "An express statement that any license must be set out in a separate signed document - acceptable and equivalent to template intent.",
+        "An express statement that Confidential Information remains the exclusive property of the Disclosing Party - acceptable."
+      ]
+    },
+    {
+      "clause_type": "no_warranty",
+      "title": "No Warranty / No Other Obligations",
+      "standard_position": "Neither Party is obligated to supply any particular Confidential Information or to enter into any transaction; no partnership/JV/agency is created; and either Party may terminate discussions at any time in its sole discretion (template Clause 6). An AS-IS warranty disclaimer (no representation or warranty as to accuracy, completeness, or fitness of the Confidential Information) is not in the SG template body but is acceptable and improving when added mutually.",
+      "risk_weight": 2,
+      "presence": "optional",
+      "walk_away_triggers": [
+        "A consequential/indirect/special/punitive damages waiver or liability cap bundled into the no-warranty clause that would limit Amperesand's recovery when the individual misuses Amperesand's CI - if it must remain, carve out confidentiality breaches and IP misappropriation from the waiver.",
+        "A one-directional damages exclusion protecting only the individual as discloser while leaving Amperesand fully liable as discloser - require mutuality.",
+        "Any affirmative warranty by Amperesand beyond a narrow right-to-disclose (warranting accuracy, completeness, non-infringement, fitness, or performance of Amperesand's CI) - refuse.",
+        "A no-warranty clause coupled with an indemnity on Amperesand for the individual's use of or reliance on the disclosed information - refuse (indemnity in an NDA is dealbreaker-class)."
+      ],
+      "acceptable_fallbacks": [
+        "The template's 'no obligation to supply / no obligation to transact / no partnership-JV-agency / free to terminate discussions' content (observed in executed paper) - retain; this is the standard.",
+        "A mutual express AS-IS warranty disclaimer added by negotiation - acceptable and improves on the template's implicit position."
+      ]
+    },
+    {
+      "clause_type": "remedies_injunctive_relief",
+      "title": "Remedies / Injunctive Relief",
+      "standard_position": "Each Party acknowledges monetary damages alone may be insufficient for a breach and agrees the Disclosing Party (in a mutual NDA, either Party as Disclosing Party) may seek specific performance or injunctive relief from any court in any jurisdiction, as a non-exclusive remedy in addition to all other remedies at law or equity, with no bond requirement and no cap on monetary damages (template Clause 12).",
+      "risk_weight": 4,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Recipient must waive all rights to oppose injunctive/equitable relief sought by the Disclosing Party (blanket pre-emptive waiver of defense rights when Amperesand is the recipient) - refuse.",
+        "A low/fixed bond cap (e.g., a nominal dollar ceiling) that a court could read as limiting relief or security - refuse any numeric bond cap.",
+        "Broad mutual waiver of consequential/special/punitive/exemplary damages materially capping Amperesand's recovery for misuse of IP.",
+        "Injunctive relief narrowed to IP-rights infringement only, excluding ordinary confidentiality breaches.",
+        "Complete omission of any injunctive-relief/irreparable-harm clause, leaving Amperesand without an express equitable-remedy acknowledgment - acute for an individual counterparty, where injunctive relief and return/destruction are the practical remedies (a natural person often cannot satisfy a large damages award).",
+        "Injunctive/no-oppose right made one-sided in the individual's favour in a mutual NDA.",
+        "Indemnification or uncapped damages liability bundled into the remedies clause beyond standard NDA scope."
+      ],
+      "acceptable_fallbacks": [
+        "Remedy framed as available to 'the injured Party' rather than only 'the Disclosing Party' - acceptable and mutual.",
+        "The template formulation (specific performance or injunctive relief from any court in any jurisdiction, in addition to all other remedies, observed in executed paper) - retain; this is the standard."
+      ]
+    },
+    {
+      "clause_type": "governing_law_jurisdiction",
+      "title": "Governing Law and Dispute Resolution",
+      "standard_position": "Governed by the laws of Singapore. Disputes referred to arbitration administered by the Singapore International Arbitration Centre (SIAC) under its prevailing rules, seat Singapore, single arbitrator, conducted in English, with a court carve-out limited to injunctive/equitable relief (template Clause 16 + Clause 12).",
+      "risk_weight": 3,
+      "presence": "required",
+      "walk_away_triggers": [
+        "No governing law and no dispute-resolution/forum clause at all, leaving applicable law and enforcement uncertain.",
+        "Governing law specified but NO forum or dispute mechanism - insist on a clear court or arbitration forum.",
+        "Shift to the individual's home jurisdiction where the individual is foreign-domiciled (an observed executed counterparty was US-domiciled, yet the agreement correctly stayed Singapore-law + SIAC) - resist a move to US-state law/courts or any foreign-seat litigation that gives the individual home-court advantage.",
+        "Ambiguous choice-of-law language - require Singapore law named expressly.",
+        "Mixed/inconsistent template: a foreign-law contract embedding operative Singapore statutory definitions (PDPA, Companies Act, Electronic Transactions Act) with no conflicts carve-out - fix before signing.",
+        "US-litigation boilerplate (jury-trial waiver, US-state exclusive courts) inserted into a Singapore-governed agreement, especially where the individual is US-domiciled - strike as inapplicable.",
+        "ICC or other high-cost institutional arbitration for a low-value individual NDA where SIAC was available (disproportionate cost against a natural person and against Amperesand)."
+      ],
+      "acceptable_fallbacks": [
+        "Singapore law with exclusive jurisdiction of the Singapore courts (litigation, no SIAC arbitration) - acceptable on Singapore paper; the home law/forum is preserved and litigation may even be cheaper/simpler than arbitration against a single individual.",
+        "SIAC seated in Singapore administered under ICC rules, or a neutral seat, for a sophisticated cross-border individual - acceptable per-deal, but default to SIAC/Singapore."
+      ]
+    },
+    {
+      "clause_type": "assignment",
+      "title": "Assignment",
+      "standard_position": "Neither Party may assign rights or delegate obligations without the other Party's prior written consent, except that (i) the Disclosing Party may assign to an acquirer of substantially all of its assets by operation of law, and (ii) Amperesand may assign to any Affiliate on prior written notice only (no consent required); any purported assignment in violation is null and void, and assignment does not relieve the assignor of its obligations. 'Affiliate' means an entity controlling, controlled by, or under common control with a Party (template Clause 15). For an individual counterparty the Individual has no meaningful affiliate-assignment right; the substantive assignment flexibility is Amperesand's.",
+      "risk_weight": 4,
+      "presence": "optional",
+      "walk_away_triggers": [
+        "Agreement freely binding on 'successors and assigns' with no consent or notice requirement, allowing assignment automatically and transferring access to Amperesand's CI to an unknown third party.",
+        "The individual granted a right to assign/transfer the agreement (e.g., to a new employer or a personal entity) without Amperesand's consent - refuse; an individual should not be able to pass Amperesand's CI rights onward.",
+        "Asymmetry running against Amperesand (the individual free to assign while Amperesand needs consent) - resist; the template's Amperesand-Affiliate-on-notice carve-out should be preserved.",
+        "No assignment clause at all, leaving assignment to permissive local-law defaults."
+      ],
+      "acceptable_fallbacks": [
+        "A flat 'no assignment without prior written consent of the other Party' with the Disclosing-Party-acquirer and Amperesand-Affiliate carve-outs preserved (template form) - this is the standard.",
+        "Disclosing Party's assignment to an acquirer of substantially all assets by operation of law - acceptable and preserved in observed executed paper.",
+        "An assignment clause that mislabels the counterparty (an observed executed clause refers to giving notice 'to the Company' though the counterparty is an Individual) is a harmless drafting artifact; correct it for clarity."
+      ]
+    },
+    {
+      "clause_type": "residuals",
+      "title": "Residuals / Competitive-Use",
+      "standard_position": "Amperesand's template contains NO residuals clause and NO competitive-use carve-out; the recipient must keep Confidential Information confidential and use it solely for the Purpose. For an individual counterparty there is a real-world residuals tension - a natural person inevitably retains general skills and know-how in memory - but the Amperesand position is NO express residuals right and NO permission to apply Confidential Information to competing work; the protection for the individual's legitimate general knowledge runs through the independent-development and prior-possession carve-outs, not a residuals clause.",
+      "risk_weight": 5,
+      "presence": "prohibited",
+      "walk_away_triggers": [
+        "Broad residuals clause permitting the individual to use information retained in unaided memory for any purpose / in the ordinary course of their work or for a future employer.",
+        "Competitive-use carve-out expressly permitting the individual (or their future employer) to use Amperesand's Confidential Information to develop or work on competing products.",
+        "Any residuals or 'general knowledge' clause lacking an express prohibition on direct use of Confidential Information.",
+        "A clause permitting the individual to take 'know-how acquired during the engagement' to a competitor - a de facto residuals grant; refuse."
+      ],
+      "acceptable_fallbacks": [
+        "Reliance on the independent-development and prior-possession exclusions to protect the individual's genuine pre-existing skills and residual general knowledge (NOT a residuals clause) - this is the only acceptable mechanism.",
+        "A narrowly framed acknowledgment that the individual's general skill and experience are not restrained, expressly conditioned on no use or disclosure of Confidential Information - acceptable as a documented fallback, never as a residuals right."
+      ]
+    },
+    {
+      "clause_type": "non_solicitation",
+      "title": "Non-Solicitation",
+      "standard_position": "Amperesand's template contains NO standalone non-solicitation covenant. An NDA is a confidentiality instrument, not a trade-restraint vehicle; trade restraints against a natural person also raise enforceability concerns under Singapore restraint-of-trade doctrine. An inserted non-solicit is treated as a prohibited, high-severity, walk-away clause and belongs (if at all) in a separate employment/consulting agreement.",
+      "risk_weight": 5,
+      "presence": "prohibited",
+      "walk_away_triggers": [
+        "Any standalone non-solicitation covenant untethered from use of Confidential Information.",
+        "Non-solicit period exceeding 12 months, or with no fixed term / perpetual restraint.",
+        "Unilateral / one-way non-solicit binding only the individual where the individual is the substantive recipient (or, conversely, only Amperesand) - either asymmetry is resisted.",
+        "Non-solicit lacking a general-advertising and non-targeted-recruiting carve-out.",
+        "Customer/supplier non-solicit broad enough to restrain the individual's ordinary livelihood (a de facto non-compete on a natural person, which Singapore courts scrutinize for reasonableness).",
+        "Liquidated-damages or indemnity tied to a non-solicit breach by the individual."
+      ],
+      "acceptable_fallbacks": [
+        "A narrow, use-tethered non-solicit (<=12 months, with a general-advertising carve-out) may be entertained only as a documented fallback - and is better placed in a separate employment/consulting agreement, not the NDA."
+      ]
+    },
+    {
+      "clause_type": "non_competition",
+      "title": "Non-Competition",
+      "standard_position": "Amperesand's template contains NO non-competition clause; an NDA should remain a confidentiality instrument only. A non-compete against a natural person raises acute Singapore restraint-of-trade enforceability concerns and belongs (if anywhere) in a separate employment/consulting agreement with proper consideration and a legitimate proprietary interest. Preferred position: no non-compete, no non-compete-taint restriction, and no non-compete waiver in either direction in the NDA.",
+      "risk_weight": 5,
+      "presence": "prohibited",
+      "walk_away_triggers": [
+        "A non-compete embedded in the NDA restraining the individual from working for, or starting, a competing business - refuse; this belongs in the engagement agreement and must be tested for reasonableness.",
+        "One-sided non-compete-taint / 'residual contamination' restriction barring the individual (or Amperesand personnel) exposed to CI from working on competing technology - a de facto non-compete.",
+        "Broad definition of 'competes' tied to a personnel-segregation or taint obligation that can sterilize either party's legitimate work.",
+        "Any asymmetric non-compete obligation binding only one party in a mutual NDA.",
+        "Any restraint of trade that lacks a legitimate proprietary interest, reasonable scope, and reasonable duration (unenforceable under Singapore law and a red flag for counterparty drafting overreach)."
+      ],
+      "acceptable_fallbacks": [
+        "No non-compete in the NDA. If the engagement genuinely warrants one, defer it to a separate employment/consulting agreement with proper consideration and a reasonable, interest-justified scope - never bootstrap it into this confidentiality instrument."
+      ]
+    },
+    {
+      "clause_type": "indemnification",
+      "title": "Indemnification",
+      "standard_position": "Amperesand's standard NDA contains NO indemnification, hold-harmless, or fee-shifting provision; confidentiality breaches are remedied through general-law damages and equitable relief. Preferred position: strike any indemnity or attorneys'-fees clause entirely. An indemnity against a natural person is largely illusory (limited assets) and dealbreaker-class if it runs against Amperesand.",
+      "risk_weight": 5,
+      "presence": "prohibited",
+      "walk_away_triggers": [
+        "Uncapped, one-way indemnity running against Amperesand as recipient; if unavoidable, demand mutuality, a liability cap, and exclusion of indirect/consequential loss.",
+        "Legal/attorneys' costs recoverable on a solicitor-client / 'indemnity basis' rather than reasonable party-and-party costs.",
+        "Indemnity or liability extending to 'attempted or threatened' disclosure and to a broad list of indemnitees.",
+        "Uncapped explicit damages liability for unauthorized use/disclosure with no limitation of liability.",
+        "Any non-mutual fee-shifting or indemnity running only in the individual's favour.",
+        "Indemnity lacking carve-outs aligned to the confidentiality exclusions (compelled disclosure, independently developed information, publicly available information)."
+      ],
+      "acceptable_fallbacks": [
+        "No indemnity at all (the template/executed-deal position) - this is the standard.",
+        "Each party bears its own costs/expenses of discussions and negotiations - acceptable; the opposite of fee-shifting and consistent with no-indemnity."
+      ]
+    },
+    {
+      "clause_type": "notices_misc",
+      "title": "Notices and Miscellaneous Boilerplate",
+      "standard_position": "Notices effective on delivery by hand, email, or certified/registered mail to specified addresses; clean boilerplate (no-publicity, no-waiver, severability, entire agreement/merger, written-signed amendments, counterparts, PDF/e-signature execution) with the e-signature statutory basis matched to governing law (Electronic Transactions Act 2010 on Singapore paper, cited expressly in executed paper) and no extra regulatory obligations (template Clauses 5, 9, 11, 13, 14, 17).",
+      "risk_weight": 2,
+      "presence": "optional",
+      "walk_away_triggers": [
+        "Incomplete or blank counterparty notice details (placeholder name/address/email) left in an executed agreement, undermining valid service on the individual - never sign with placeholder notice fields (observed executed paper correctly filled the Individual's personal name, street address, and email).",
+        "Securities-trading / MNPI acknowledgment imposing affirmative internal-compliance and personnel-advisory obligations beyond an NDA's scope - push back as out-of-scope for an individual.",
+        "Attorneys'-fee / prevailing-party fee-shifting not in Amperesand's standard - resist or strike.",
+        "US-litigation boilerplate (jury-trial waiver, US-state references) inserted into a Singapore-governed agreement where the individual is US-domiciled - strike as inapplicable.",
+        "Perpetual / unlimited-in-time survival of personal-data or other miscellaneous obligations - cap to a defined term.",
+        "Notice solely to a personal email address that the individual may lose access to after the engagement ends - consider a postal-address backstop for a natural-person counterparty."
+      ],
+      "acceptable_fallbacks": [
+        "Notice by hand / electronic mail / certified or registered mail with deemed-receipt-on-delivery timing (template Clause 9) - acceptable; this is the standard.",
+        "A no-publicity clause requiring Disclosing-Party written approval for any release/announcement (template Clause 5) - retain; an Amperesand-favorable protection.",
+        "The sole-benefit / no-third-party-beneficiary statement in the assignment clause - acceptable and consistent with the template."
+      ]
+    },
+    {
+      "clause_type": "entire_agreement_amendments",
+      "title": "Entire Agreement and Amendments",
+      "standard_position": "The Agreement is the final, complete, and exclusive agreement on its subject matter, superseding and merging all prior discussions; no modification or amendment is effective unless in writing and signed by authorized representatives of both Parties (template Clause 14).",
+      "risk_weight": 2,
+      "presence": "optional",
+      "walk_away_triggers": [
+        "An entire-agreement clause that purports to supersede other signed agreements between the parties (e.g., a separate employment/consulting or invention-assignment agreement) rather than only prior discussions on the same subject matter - cabin to the NDA's subject matter.",
+        "Amendment permitted by unilateral notice or by conduct rather than a writing signed by both parties.",
+        "A merger clause that disclaims reliance so broadly it could waive Amperesand's confidentiality protections established elsewhere."
+      ],
+      "acceptable_fallbacks": [
+        "The template entire-agreement-and-amendments clause (observed in executed paper) - acceptable; this is the standard.",
+        "An entire-agreement clause that expressly preserves a separate employment/consulting or invention-assignment agreement as a distinct agreement - acceptable and advisable for an individual engagement."
+      ]
+    },
+    {
+      "clause_type": "personal_data_privacy",
+      "title": "Personal Data / PDPA (Singapore) - Individual",
+      "standard_position": "Any shared personal data is swept into Confidential Information (an executed deal defines 'Personal Data (as defined in the PDPA 2012 of Singapore)' as a CI limb) and handled under the Personal Data Protection Act 2012 (PDPA): collected/used/disclosed only for the Purpose, protected with reasonable security, not transferred outside Singapore except on PDPA-compliant terms, and returned/destroyed under the return-destruction clause. For an individual counterparty this is heightened: the individual's OWN personal data (identity, contact details, NRIC/passport last-four, background) is processed by Amperesand, and the individual may in turn handle personal data of Amperesand's staff or third parties. The SG mNDA contains no standalone DPA; personal data rides the confidentiality regime.",
+      "risk_weight": 3,
+      "presence": "required",
+      "walk_away_triggers": [
+        "A foreign privacy regime (e.g., US state privacy law, given a US-domiciled individual) imposed as the governing personal-data standard on a Singapore-governed agreement, creating jurisdictional ambiguity - clean before signing.",
+        "Collection of more of the individual's personal data than necessary for the Purpose, or use of the individual's personal data beyond the Purpose, contrary to PDPA purpose-limitation and consent obligations.",
+        "Affirmative data-protection obligations (breach-notification timelines, audit/inspection rights, security-remediation at Amperesand's expense) bolted on one-sidedly - reciprocate or scope-limit.",
+        "Personal-data obligations with perpetual/unlimited survival - cap to a defined term.",
+        "Onward cross-border transfer of shared personal data (including the individual's own data to overseas Amperesand affiliates) without PDPA-compliant safeguards.",
+        "Stripping the PDPA Personal Data limb from the CI definition where the engagement involves personal data handling - it must remain on Singapore paper."
+      ],
+      "acceptable_fallbacks": [
+        "Reliance on the CI definition's PDPA Personal Data limb (observed in executed paper, limb (e)) plus the confidentiality, return/destruction, and security-of-care obligations - acceptable and is the standard for an ordinary individual engagement.",
+        "A standalone, mutual data-processing addendum referencing the PDPA where significant personal data of third parties is exchanged - acceptable if reciprocal and term-limited.",
+        "Standard PDPA consent/notification handling of the individual's own personal data for the Purpose and the contemplated relationship - acceptable."
+      ]
+    }
+  ]
+}

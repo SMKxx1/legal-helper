@@ -1,0 +1,431 @@
+{
+  "contract_type": "nda",
+  "version_no": 4,
+  "variant_key": "US_Company",
+  "variant": { "jurisdiction": "US", "counterparty": "company", "mutuality": "mutual" },
+  "entity": "Amperesand Inc",
+  "status": "draft-v4 (internal assistive; a human reviewer is the final authority)",
+  "defaults": {
+    "perspective_preference": "Mutual reciprocal mNDA: both Parties may disclose and receive, terms protect Amperesand symmetrically as both Disclosing and Receiving Party (Amperesand most often discloses product/engineering/manufacturing info to suppliers and contract manufacturers, but receives from large strategic OEMs and semiconductor counterparties, so the role flips).",
+    "our_role": "both",
+    "governing_law": "Delaware (US)",
+    "forum": "AAA Commercial Arbitration Rules, single arbitrator, seat Nevada USA, English; injunctive/equitable-relief court carve-out (any court of competent jurisdiction)",
+    "term_standard": "Agreement term 1 year from the Effective Date, terminable earlier by either Party on written notice (mNDA 4.7 Clause 8).",
+    "survival_standard": "Confidentiality obligations survive 2 years from the Effective Date; trade secrets protected for as long as they remain trade secrets under DTSA / applicable state UTSA (mNDA 4.7 Clause 8). ~3-year survival-from-disclosure forms seen in observed counterparty paper are deviations recorded as fallbacks.",
+    "required_carveouts": [
+      "prior_possession (already in the Receiving Party's or its Representatives' possession/known before disclosure)",
+      "public_domain (is or comes into the public domain through no fault or breach by the Receiving Party or its Representatives)",
+      "third_party (received from a third party not known to be under any confidentiality obligation)",
+      "independent_development (independently developed without regard or reference to the Confidential Information)",
+      "written_authorization (approved for release or use by written authorization of the Disclosing Party)"
+    ],
+    "counsel_must_confirm": [
+      "Confirm trade-secret tail language (perpetual / 'as long as it remains a trade secret') is the approved standard default across counterparty deals where the counterparty proposes a flat survival period with no trade-secret carve-out.",
+      "Per-deal judgment on counterparty paper for the governing-law/forum fallback ladder: acceptable non-Delaware US states (counterparty home state), and whether to accept US court litigation in lieu of AAA arbitration where the counterparty's house form is litigation-only (e.g., home-state courts on some counterparty paper).",
+      "Confirm whether a 3-year survival-from-disclosure structure (seen on some executed counterparty paper) is acceptable when paired with a trade-secret carve-out, or must be re-anchored to the template 2-year-from-Effective-Date + perpetual trade secrets standard.",
+      "Where executed counterparty paper omits the prior-possession and/or independent-development carve-outs (some paper omits prior-possession), confirm these must be reinstated before signature.",
+      "Confirm position on out-of-scope add-ons frequently bolted onto US company house forms: standalone data-privacy / 72-hour breach-notification regimes, export-control compliance clauses, and burden-of-proof-on-receiving-party language (seen on some counterparty paper)."
+    ]
+  },
+  "positions": [
+    {
+      "clause_type": "confidentiality_definition",
+      "title": "Definition of Confidential Information",
+      "standard_position": "Confidential Information is defined broadly (mNDA 4.7 Clause 1) as any and all information relating to the Purpose, disclosed or communicated by or on behalf of a Party (Disclosing Party) that is marked or communicated as confidential, expressly including: (a) business/affairs/customers/suppliers/plans/market-opportunity info and IP/operations/processes/product/know-how/technical/designs/trade-secrets/software of the Disclosing Party and its existing or future subsidiaries; (b) information/findings/data/analysis derived from the CI; (c) shared personal data; and (d) any other info identified as confidential at disclosure, including third-party confidential info held by the Disclosing Party. A reasonable-person catch-all sweeps in unmarked information that someone familiar with the subject area would recognize as the type typically treated as confidential, or that the Receiving Party has reason to believe may be confidential. No oral-to-writing confirmation deadline and no marking requirement to qualify.",
+      "risk_weight": 4,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Definition narrowed to require written marking (or a stamp/legend) before disclosure to qualify, with oral/visual disclosures protected only if reduced to writing and marked within a fixed deadline -- loses protection for Amperesand's own unmarked oral disclosures (seen on some counterparty paper: written/stamp marking required; oral only if identified at the time as Confidential).",
+        "Burden-of-proof-on-Receiving-Party language paired with an unbounded 'by its nature would reasonably be construed as Confidential' catch-all that gives Amperesand no marking safe harbor when Amperesand is the recipient (observed on counterparty paper).",
+        "Definition hard-scoped to a single technology or category such that Amperesand's broader shared information (financials, strategy, personnel, customers) falls outside protection -- treat as walk-away when Amperesand is the primary discloser of IP.",
+        "Asymmetric, counterparty-only expansions of CI scope not mirrored for Amperesand (e.g., a component supplier's samples/yield data auto-deemed confidential regardless of marking; an OEM's prototypes/samples auto-deemed that counterparty's CI; affiliate asymmetry limiting Amperesand's group while the counterparty's group is open-ended).",
+        "Runaway scope beyond the Purpose or beyond formal disclosure ('whether or not related to the project'; 'in the ordinary course of conducting business'; constructive/inferred/observed knowledge catch-alls) -- creates inadvertent-breach exposure for Amperesand as Receiving Party.",
+        "Singapore PDPA / Companies Act / Electronic Transactions Act statutory references embedded in a Delaware-governed US-to-US agreement, creating ambiguity over the governing privacy regime -- must be cleaned before signing.",
+        "Cloud/third-party-processing acknowledgment in the definition that can be read as Amperesand accepting reduced confidentiality controls for cloud-stored CI."
+      ],
+      "acceptable_fallbacks": [
+        "A marking/identification mechanic IS acceptable where the catch-all for reasonably-apparent-confidential information is retained, so unmarked sensitive info is still protected.",
+        "A short oral-disclosure memorialization window (>=30 days) is tolerable only if failure to memorialize does NOT strip protection from information that is confidential by its nature.",
+        "Counterparty-specific category expansions (e.g., 'samples', 'yield data', 'pricing') are acceptable when made mutual / reciprocal."
+      ]
+    },
+    {
+      "clause_type": "permitted_purpose",
+      "title": "Permitted Purpose",
+      "standard_position": "Confidential Information may be used solely for a single, narrowly defined Purpose stated in the recitals -- for mNDAs, exploring a potential business relationship between the Parties (or a potential investment by a counterparty into Amperesand) -- and for no other purpose. The Purpose placeholder must be filled in with the specific subject matter (e.g., 'stamping', supply, manufacturing) before signature.",
+      "risk_weight": 4,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Purpose that extends beyond evaluation to ongoing 'business activities that arise from the business relationship' once a relationship exists, permitting open-ended use of CI without a separate commercial agreement -- limit to evaluation only.",
+        "Disclosing-party-controlled open-ended catch-all ('and/or other purposes as allowed by the disclosing party') giving the counterparty unilateral control to expand permitted use of Amperesand's information -- strike.",
+        "Purpose carve-out that excludes information 'shared within the scope of an established relationship or transaction governed by another contract' in a way that strips NDA protection from pre-contract exchanges (seen on some counterparty paper) -- confirm the carve-out does not leave gap-period disclosures unprotected.",
+        "Anti-reverse-engineering or 'design-around' prohibition embedded in the purpose/use clause broad enough to constrain Amperesand's legitimate independent engineering on overlapping subject matter -- narrow to genuine misappropriation of disclosed CI.",
+        "Executed agreement left with unresolved bracketed alternative Purpose language or an unfilled placeholder, creating ambiguity over agreed scope -- do not sign until the Purpose is finalized to a single complete definition.",
+        "Investor/fund 'investment management' or portfolio carve-out expanding permitted use to evaluating other investments including competitors using Amperesand's CI -- strike or ring-fence."
+      ],
+      "acceptable_fallbacks": [
+        "A somewhat broader but still bounded Purpose (e.g., 'exploring or establishing a mutually beneficial business relationship') is acceptable provided it remains evaluation-oriented and not open-ended operational use.",
+        "A carve-out deferring info governed by a separate definitive agreement is acceptable if it does not leave pre-contract disclosures unprotected."
+      ]
+    },
+    {
+      "clause_type": "exclusions_carveouts",
+      "title": "Exclusions from Confidential Information",
+      "standard_position": "Five exclusions (mNDA 4.7 Clause 2): (a) prior possession/knowledge; (b) public domain through no fault/breach; (c) third-party receipt with no known confidentiality duty; (d) independent development without regard or reference to the CI; (e) approved for release by written authorization of the Disclosing Party. Compelled disclosure is handled separately as Required Disclosure (Clause 3), NOT as a sixth exclusion.",
+      "risk_weight": 4,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Prior-possession / prior-knowledge carve-out entirely absent, so Amperesand could be bound on information it already held before disclosure (some executed paper omits prior possession -- only public-domain, independent-development, third-party, and de-designation exclusions present).",
+        "Independent-development carve-out absent or narrowed, exposing Amperesand to confidentiality/IP entanglement on its own R&D that overlaps a counterparty's CI.",
+        "Severely truncated carve-out set (only two or three carve-outs), particularly where prior possession AND independent development are both missing.",
+        "Third-party-receipt exclusion conditioned on the Receiving Party 'proving to the reasonable satisfaction of the Discloser' (or on 'no knowledge of improper action by the transferor'), making the exclusion subjectively defeatable by the discloser (seen on some counterparty paper).",
+        "Public-domain carve-out drafted as 'through Receiving Party breach only', where narrower variants fail to cover information already public at disclosure.",
+        "Burden of proof for ALL exclusions shifted onto the Receiving Party (some counterparty paper: 'The receiving Party shall bear the burden of proof in any dispute regarding the applicability of any exclusion') -- resist when Amperesand may be the recipient.",
+        "No compelled-disclosure mechanism at all, or one without prior-notice/minimization, leaving Amperesand unable to comply with a court/regulatory order without breaching."
+      ],
+      "acceptable_fallbacks": [
+        "Four-exclusion sets are tolerable ONLY where both prior possession and independent development are present; if prior possession is the missing one, require it be reinstated.",
+        "A 'no wrongful act or breach by the receiving Party' public-domain formulation is acceptable (equivalent to 'no fault').",
+        "Burden of proof on the receiving party for a SPECIFIC contested exclusion is tolerable; a blanket burden-shift on all exclusions should be resisted or made mutual."
+      ]
+    },
+    {
+      "clause_type": "compelled_disclosure",
+      "title": "Required (Compelled) Disclosure",
+      "standard_position": "Where the Receiving Party (or a Representative) is obligated or requested to disclose CI under a valid court order or governmental/regulatory authority with jurisdiction, it shall (i) to the extent not legally prohibited, give the Disclosing Party reasonable prior written notice; (ii) disclose only the CI required by the order; and (iii) use reasonable efforts to secure confidential treatment. If advance notice is impossible, inform the Disclosing Party of the full circumstances as soon as reasonably practicable after disclosure. Mutual/symmetrical. (mNDA 4.7 Clause 3.)",
+      "risk_weight": 3,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Cost of resisting/limiting compelled disclosure shifted onto Amperesand as Disclosing Party as a baseline term -- some counterparty paper requires the receiving Party to cooperate 'at the disclosing Party's expense'; resist as a default if it makes Amperesand bear costs of the counterparty's response when Amperesand is the recipient.",
+        "Fixed long advance-notice periods (e.g., 30 days) that cannot be met under urgent court/government orders.",
+        "Mandatory obligation to take 'all assistance / all steps the Disclosing Party may require' to fight compelled disclosure, effectively ceding control of Amperesand's response to legal process to the counterparty.",
+        "No prior-notice or minimization mechanism at all, forcing Amperesand to choose between breaching the order and breaching the NDA.",
+        "Compelled-disclosure right made one-sided (only the counterparty may comply with legal process; or only the counterparty controls the response)."
+      ],
+      "acceptable_fallbacks": [
+        "Reasonable cooperation with the disclosing Party's efforts to seek a protective order, at the disclosing Party's expense, is acceptable.",
+        "A protective-order / 'reliable assurances of confidential treatment' framing (seen on some counterparty paper) is acceptable in place of the template's 'reasonable efforts to ensure confidential treatment'."
+      ]
+    },
+    {
+      "clause_type": "obligations_of_confidentiality",
+      "title": "Confidentiality Obligations",
+      "standard_position": "The Receiving Party must hold all CI in strict confidence and not disclose it to any third party without prior written approval, use it solely for the Purpose, apply at least the same degree of care it uses for its own CI of like importance but no less than reasonable care, limit access to Representatives (directors, officers, employees, advisers) strictly on a need-to-know basis, remain fully responsible for its Representatives' breaches and take all reasonable measures to restrain them, and promptly notify the Disclosing Party of any loss or unauthorized disclosure -- mutual, with no extraneous IP/use restrictions, marking-confirmation traps, or expanded-disclosee carve-outs. (mNDA 4.7 Clause 4.)",
+      "risk_weight": 4,
+      "presence": "required",
+      "walk_away_triggers": [
+        "No-copy / no-reverse-engineer restriction ('shall not copy, reverse engineer, or otherwise use except as expressly permitted in writing by the Discloser') drafted broadly enough to bind Amperesand's INDEPENDENT development or test articles, with no independent-development carve-in (seen on some counterparty paper) -- resist or carve out.",
+        "Requirement of prior written notice to the counterparty BEFORE the Receiving Party may share with its own need-to-know employees/affiliates/advisers (some counterparty paper: 'The Recipient shall notify the Discloser in writing prior to any such disclosure') -- operationally unworkable.",
+        "Expanded disclosee universe that lets the counterparty push Amperesand's CI to its affiliates, suppliers, or investment group without a direct confidentiality obligation or reciprocity -- some counterparty paper permits the counterparty alone to disclose to its suppliers (asymmetric supplier pass-through).",
+        "Affiliates and 'all employees' folded into the defined counterparty so the counterparty's whole group is automatically bound/benefited while Amperesand's group is narrower (some counterparty paper defines the counterparty to include parents, subsidiaries, affiliates, officers, directors, and employees).",
+        "Legend/notice-reproduction obligation requiring the Receiving Party to reproduce proprietary legends on all copies as the Discloser may 'reasonably request' (seen on some counterparty paper) -- accept only if not a precondition to internal use.",
+        "Mandatory affirmative enforcement obligation requiring the Receiving Party to take 'all reasonable measures including court proceedings' against its own Representatives at its own cost -- push back.",
+        "Requirement that each Representative individually execute identical written undertakings before any access (operationally unworkable).",
+        "Affiliate-disclosure mechanic requiring affiliates to agree in advance in writing to be bound (seen on some counterparty paper) where it is not reciprocal or is operationally impractical.",
+        "Strict 'best endeavours to prevent breach' or 'whichever is higher / generally-accepted-standards' care obligation imposing costly affirmative steps beyond reasonable care.",
+        "AI-training / AI-tool-development prohibition or one-sided cybersecurity-audit/remediation regime bolted onto the confidentiality clause.",
+        "Perpetual or open-ended confidentiality obligation embedded in this clause (including 'indefinite' obligations for backup/archived data) that contradicts the agreed term.",
+        "Broad 'no use/exploitation for any commercial purpose whatsoever without written approval' restriction that exceeds the Purpose limitation."
+      ],
+      "acceptable_fallbacks": [
+        "Reverse-engineering prohibitions are acceptable when expressly carved to permit independent development and exclude information covered by the exclusions.",
+        "A use-restriction to 'the purposes of this Agreement' (seen on some counterparty paper) is acceptable and mirrors the template Purpose limitation.",
+        "Affiliate/Representative flow-downs are acceptable when reciprocal and the Receiving Party remains responsible for compliance, in lieu of individual written undertakings.",
+        "'Need to know' Representative scope may be widened to include consultants, contractors, and agents (template wording is directors/officers/employees/advisers) provided the responsibility-for-breach backstop is retained.",
+        "An affirmative enforcement obligation against the Receiving Party's own Representatives is acceptable only as vicarious liability, not mandated litigation."
+      ]
+    },
+    {
+      "clause_type": "permitted_disclosures",
+      "title": "Permitted Disclosures (Representatives and Compelled)",
+      "standard_position": "The Receiving Party may disclose CI (a) to its Representatives on a need-to-know basis for the Purpose, remaining responsible for their compliance, and (b) where compelled by a valid court/governmental/regulatory order, subject to the Required Disclosure protections (notice, minimization, confidential-treatment efforts). All disclosure rights mutual/symmetrical.",
+      "risk_weight": 3,
+      "presence": "required",
+      "walk_away_triggers": [
+        "One-sided / asymmetric affiliate-, supplier-, or investor-network disclosure rights letting the counterparty push Amperesand CI to its affiliates/suppliers without Amperesand consent and with no reciprocal right (some counterparty paper grants a supplier pass-through to the counterparty only).",
+        "Disclosure to open-ended classes of third parties ('prospective co-investors', 'potential sources of financing', 'current and/or prospective investors') -- broad leakage to unidentified parties without consent.",
+        "Requiring prior written notice to the counterparty before sharing with the Receiving Party's OWN need-to-know employees/affiliates/advisers (seen on some counterparty paper) -- operationally unworkable.",
+        "Unilateral government/regulator pass-through letting only the counterparty disclose Amperesand CI to a government agency without notice or reciprocity, or a standing third-party inspection right not tied to actual legal compulsion.",
+        "Broad non-announcement clause barring even acknowledgment of the existence of discussions that could constrain investor or regulatory communications, expanding beyond mNDA 4.7 Clause 5 'No Publicity'.",
+        "Mandatory obligation to take 'all steps the Disclosing Party may require' to fight compelled disclosure where this cedes control of Amperesand's legal response to the counterparty."
+      ],
+      "acceptable_fallbacks": [
+        "Disclosure to Third Party Representatives (attorneys/consultants/accountants) and affiliates with a need to know, under obligations no less restrictive than the NDA, is acceptable (seen on some counterparty paper) provided it is reciprocal.",
+        "Affiliate disclosure deemed a disclosure 'under this Agreement' (seen on some counterparty paper) is acceptable when mutual."
+      ]
+    },
+    {
+      "clause_type": "term_of_confidentiality",
+      "title": "Term and Survival of Confidentiality",
+      "standard_position": "Agreement term commences on the Effective Date and expires 1 year from the Effective Date, terminable earlier by either Party on written notice. Confidentiality obligations survive any termination/expiration for 2 years from the Effective Date; trade secrets remain Confidential Information for as long as they so qualify under DTSA / applicable state UTSA. (mNDA 4.7 Clause 8.)",
+      "risk_weight": 4,
+      "presence": "required",
+      "walk_away_triggers": [
+        "No post-termination survival at all, or confidentiality co-terminous with the agreement term, leaving disclosed info unprotected once a (potentially short) term ends or definitive documents are signed.",
+        "Survival measured from the Effective Date where the survival figure equals or is shorter than the agreement term, producing zero or near-zero effective post-expiry protection.",
+        "Flat survival period with NO trade-secret carve-out where Amperesand is the sole or primary discloser (some counterparty paper uses 3-year confidentiality from date of disclosure with no perpetual trade-secret tail; other paper uses 3 years after disclosure with no trade-secret tail) -- insist on at minimum a trade-secret carve-out.",
+        "1-year (or shorter) rolling per-disclosure survival when Amperesand is the sole/primary discloser and no trade-secret carve-out is included.",
+        "Perpetual or indefinite survival imposed on Amperesand when Amperesand is the RECEIVING party (including open-ended 'qualifies as confidential under applicable law' tails and perpetual retained-copy/backup carve-outs on large-counterparty paper).",
+        "Internally contradictory or ambiguous survival drafting a court could read as either expiring with the agreement or perpetual -- fix to a clear finite period before signing.",
+        "Drafting-error figures (a spelled-out number disagreeing with its parenthetical figure) creating construction-dispute risk -- correct before execution.",
+        "Term of 5 years or longer, or a perpetual/evergreen term with no fixed expiry surviving indefinitely absent affirmative notice, especially where the early-termination-for-convenience right is also removed."
+      ],
+      "acceptable_fallbacks": [
+        "3-year survival measured from each disclosure (a counterparty-paper form) is an acceptable fallback IF a perpetual trade-secret carve-out is added.",
+        "3-year agreement term auto-terminating, terminable on 30 days' notice (seen on some counterparty paper) is acceptable provided survival outlasts the term and a trade-secret tail is present.",
+        "Re-anchoring survival to termination/expiry (rather than the Effective Date) is a welcome forward-looking improvement that lengthens the post-expiry tail."
+      ]
+    },
+    {
+      "clause_type": "survival",
+      "title": "Survival of Obligations",
+      "standard_position": "Each Party's rights and obligations survive termination/expiration of the Agreement for the confidentiality-survival period (2 years from the Effective Date on mNDA paper) with trade secrets surviving for as long as they remain trade secrets; surviving obligations (and the duty to protect any lawfully retained copy) continue independently of the agreement term. (mNDA 4.7 Clauses 7-8.)",
+      "risk_weight": 3,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Survival of obligations tied solely to the agreement term so that nothing survives expiry/termination.",
+        "Perpetual/indefinite survival of ALL obligations imposed on Amperesand as recipient (distinct from the legitimate perpetual trade-secret tail).",
+        "Survival clause that revives or extends restraints (non-solicit/non-compete-style obligations) beyond confidentiality.",
+        "Ambiguous interplay between the survival clause and the retained-copy carve-out that could be read as perpetual confidentiality on all retained data."
+      ],
+      "acceptable_fallbacks": [
+        "Survival expressly limited to confidentiality, return/destruction, no-license, and remedies provisions is acceptable.",
+        "Survival of the duty to protect a single lawfully retained archival copy for as long as retained is acceptable."
+      ]
+    },
+    {
+      "clause_type": "return_destruction",
+      "title": "Return or Destruction of Confidential Information",
+      "standard_position": "On the Disclosing Party's written request or upon expiration/termination, the Receiving Party must within 14 days return or destroy (at its election) all CI and copies, except it may retain one (1) archival copy (including electronic records created by automatic archiving/back-up) solely to perform surviving obligations and as required by law/court/regulatory authority or internal audit/compliance, with the Agreement continuing to apply to any retained copy. (mNDA 4.7 Clause 7.)",
+      "risk_weight": 3,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Destroy/return obligation satisfied merely by reference to the Receiving Party's own record-retention schedule, letting the counterparty keep Amperesand CI as long as its policies permit -- renders the destroy obligation illusory (some counterparty paper: written assurance that information 'will be destroyed pursuant to the receiving Party's record retention schedule').",
+        "Open-ended/indefinite retention of automatic backup or archival copies with no sunset and a perpetual confidentiality tail (some counterparty paper permits indefinite archived-system retention) -- accept only with a confidentiality continuation and no-active-access undertaking.",
+        "Broad carve-out permitting retention of derivative work product (notes, summaries, memoranda, analyses) so materials derived from Amperesand CI need not be returned or destroyed.",
+        "Blanket right for the counterparty's professional advisors to retain copies per their own practice, untethered from a specific legal requirement.",
+        "Unilateral legal-department retention carve-out for 'litigation, regulatory compliance, or corporate record-keeping' without Disclosing Party consent.",
+        "Asymmetric/non-reciprocal retention rights (privileges granted only to the counterparty and not to Amperesand).",
+        "Requirement that Amperesand affirmatively hand over to the counterparty all work product it derived from that counterparty's information (beyond return/destroy).",
+        "Return-only obligation with no destruction option and no certification mechanism, forcing physical return of all electronically stored CI.",
+        "Loss of any trigger for return on demand (obligation arises only on a 'decision not to proceed', with no right for Amperesand to demand return at any time or on expiry)."
+      ],
+      "acceptable_fallbacks": [
+        "A 14-day window on written notice (seen on some counterparty paper) matching the template is acceptable.",
+        "Retention of archived/backup copies in an automatic disaster-recovery system is acceptable IF active access is precluded and the confidentiality obligation continues for the retained copy (a counterparty-paper proviso).",
+        "A written destruction certification in lieu of physical return is acceptable and preferred for electronically stored CI."
+      ]
+    },
+    {
+      "clause_type": "no_license_ip",
+      "title": "No License / No Transfer of IP",
+      "standard_position": "The Disclosing Party retains all right, title, and interest in its CI (including copies and extracts) and grants no licenses or rights except as expressly set forth; nothing grants any license to, or waives, any patents, copyrights, trademarks, or mask works (express, implied, by estoppel, or otherwise). (mNDA 4.7 Clause 10.)",
+      "risk_weight": 3,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Any IP assignment, vesting, or work-for-hire obligation requiring Amperesand (as recipient) to assign or transfer ownership of IP, inventions, or 'derivatives of Confidential Information' it creates -- strike or carve out Amperesand's pre-existing and independently developed IP.",
+        "A patent-filing prohibition barring Amperesand from filing patent applications relating to information it receives, where the bar reaches Amperesand's own independently developed IP rather than just the OTHER party's CI (some counterparty paper: 'shall not include Confidential Information in any copyright registrations, patent applications, or similar registrations of ownership') -- resist or narrow.",
+        "'Derived directly or indirectly' or 'in the course of interaction' IP-capture language sweeping in Amperesand's own innovations that merely touch counterparty information -- require a carve-out for pre-existing, independently developed, and residual-knowledge IP.",
+        "Any provision granting the Receiving Party an affirmative license to the Disclosing Party's IP, or deeming disclosure an implied license/waiver of patent/copyright/trademark/mask-work rights."
+      ],
+      "acceptable_fallbacks": [
+        "An express bar on registering the disclosing party's CI in the recipient's own patent/copyright filings (seen on some counterparty paper) is acceptable when it does not reach the recipient's independently developed IP.",
+        "A 'no license under any trade secrets, copyrights, know-how, or other rights granted or implied' formulation (seen on some counterparty paper) is acceptable and mirrors the template."
+      ]
+    },
+    {
+      "clause_type": "no_warranty",
+      "title": "No Warranty / AS-IS",
+      "standard_position": "Confidential Information is provided AS IS with the Disclosing Party making no representation or warranty (express, statutory, or implied) as to accuracy, completeness, fitness, or performance, and bearing no liability for the Receiving Party's use or reliance; the Disclosing Party is under no obligation to supply any particular CI and neither Party is obligated to enter into any transaction (no partnership/JV/agency created). (mNDA 4.7 Clause 6 'No Other Obligations'; AS-IS standard reflected in executed US company forms.)",
+      "risk_weight": 2,
+      "presence": "optional",
+      "walk_away_triggers": [
+        "A consequential/indirect/special/punitive damages waiver or any liability cap bundled into the no-warranty clause that would limit Amperesand's recovery (including lost profits and fees) when a counterparty misuses or improperly discloses Amperesand's CI -- if it must remain, carve out confidentiality breaches and IP misappropriation from the waiver.",
+        "Outright deletion of any AS-IS disclaimer, leaving Amperesand exposed to accuracy/completeness/quality claims about the information it shares.",
+        "A one-directional damages exclusion or non-reliance limitation protecting only the counterparty as discloser while leaving Amperesand fully liable -- require mutuality.",
+        "Any affirmative warranty by Amperesand beyond a narrow right-to-disclose (warranting accuracy, completeness, non-infringement, fitness, or performance of Amperesand's CI) -- refuse.",
+        "A no-warranty clause coupled with an indemnity on Amperesand for the counterparty's use of or reliance on the disclosed information -- refuse (indemnity in an NDA is dealbreaker-class).",
+        "An affirmative 'duty and responsibility to perform due diligence reviews at its own cost' (seen on some counterparty paper) framed to disadvantage Amperesand as recipient or to imply Amperesand warrants nothing while bearing all diligence risk -- resist."
+      ],
+      "acceptable_fallbacks": [
+        "A mutual AS-IS / no-warranty disclaimer (seen on some counterparty paper) is acceptable and preferred.",
+        "A mutual due-diligence-at-own-cost acknowledgment is acceptable."
+      ]
+    },
+    {
+      "clause_type": "remedies_injunctive_relief",
+      "title": "Remedies / Injunctive Relief",
+      "standard_position": "Each Party acknowledges monetary damages alone may be insufficient and agrees the Disclosing Party (either Party in an mNDA) may seek specific performance or injunctive relief from any court in any jurisdiction, as a non-exclusive remedy in addition to all other remedies at law or in equity, with no bond requirement and no waiver or cap on monetary damages. (mNDA 4.7 Clause 12.)",
+      "risk_weight": 4,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Recipient must waive all rights to oppose the granting of injunctive/equitable relief sought by the Disclosing Party (blanket pre-emptive waiver of Amperesand's defense rights when Amperesand is the recipient) -- refuse.",
+        "A low or fixed bond cap (e.g., a nominal dollar ceiling) that a court could read as limiting the relief or security available -- refuse any numeric bond cap.",
+        "Prevailing-party attorneys'-fee shifting tied to remedies/enforcement, asymmetrically deterring Amperesand from enforcing -- resist.",
+        "Broad mutual waiver of consequential/special/punitive/exemplary damages with only narrow carve-outs, materially capping Amperesand's recovery for misuse of IP.",
+        "Injunctive relief narrowed to IP-rights infringement only, excluding ordinary confidentiality breaches.",
+        "Complete omission of any injunctive-relief/irreparable-harm clause, leaving Amperesand without express equitable-remedy acknowledgment.",
+        "Injunctive/no-oppose right made one-sided in the counterparty's favour, or against Amperesand, in a mutual NDA.",
+        "Indemnification or uncapped damages liability bundled into the remedies clause beyond standard NDA scope."
+      ],
+      "acceptable_fallbacks": [
+        "A 'no necessity of posting a bond' formulation (seen on some counterparty paper) is acceptable and favorable.",
+        "Equitable relief framed as available to the 'non-breaching Party' (seen on some counterparty paper) is acceptable as a mutual formulation.",
+        "Limiting injunctive relief to 'a court of competent jurisdiction' (rather than 'any court in any jurisdiction') is acceptable provided the arbitration carve-out for injunctive relief is preserved."
+      ]
+    },
+    {
+      "clause_type": "governing_law_jurisdiction",
+      "title": "Governing Law and Dispute Resolution",
+      "standard_position": "Governed by the laws of the State of Delaware. Disputes referred to arbitration by the American Arbitration Association under its Commercial Arbitration Rules, single arbitrator, seat Nevada USA, conducted in English, with a court carve-out permitting either Party to seek injunctive/equitable relief in any court of competent jurisdiction. Trade-secret basis is DTSA / applicable state UTSA. (mNDA 4.7 Clause 16.)",
+      "risk_weight": 3,
+      "presence": "required",
+      "walk_away_triggers": [
+        "No governing law and no dispute-resolution/forum clause at all (uncertain applicable law and enforcement).",
+        "Governing law specified but NO forum or dispute mechanism (insist on a clear court or arbitration forum).",
+        "Litigation in the counterparty's home courts with exclusive jurisdiction and consent to personal jurisdiction, waiving objections to venue/forum (some counterparty paper specifies a counterparty home-state law with exclusive jurisdiction and venue in that state's courts and no-conflicts) -- refuse a one-sided home-forum lock; counter to Delaware law + AAA Nevada, or a neutral state.",
+        "Conditional/ambiguous choice-of-law ('if both Parties reside in the same jurisdiction, the law of that jurisdiction; otherwise Delaware', seen on some counterparty paper) -- pin to a single named law (Delaware) and a defined forum before signing.",
+        "Wholly foreign, non-home legal regime with foreign-seat litigation/arbitration giving the counterparty home-court advantage (German/Berlin, Swiss/ICC Zurich, Korean/KCAB, Austrian/VIAC, Netherlands/Amsterdam).",
+        "Mixed/inconsistent templates: a Delaware-governed contract embedding operative Singapore statutory definitions (personal-data, companies-act, electronic-transactions statutes) with no conflicts carve-out.",
+        "Internally contradictory or unenforceable forum clause naming two incompatible institutions or seats in one provision.",
+        "ICC arbitration for a low-value NDA dispute (disproportionate cost) where AAA or SIAC was available.",
+        "US-style jury-trial waiver paired with a litigation-only clause signaling intent to default to court litigation rather than arbitration."
+      ],
+      "acceptable_fallbacks": [
+        "Delaware law with AAA arbitration seated in a US state other than Nevada (e.g., Delaware seat) -- a Delaware seat appears frequently in executed deals and is an acceptable fallback though Nevada is the template standard.",
+        "A neutral US state's substantive law (counterparty home state) is acceptable per-deal where the counterparty's house form requires it and the forum remains a neutral US arbitral seat or court.",
+        "US court litigation in a neutral or Delaware venue is an acceptable fallback in lieu of AAA arbitration on counterparty litigation-only house forms (e.g., a counterparty home-state-courts form), subject to counsel sign-off and resisting the counterparty's exclusive home venue.",
+        "A CISG-exclusion clause (seen on some counterparty paper) is harmless and acceptable."
+      ]
+    },
+    {
+      "clause_type": "assignment",
+      "title": "Assignment",
+      "standard_position": "Neither Party may assign rights or delegate obligations without the other Party's prior written consent, except (i) the Disclosing Party may assign to an acquirer of substantially all its assets directly or by operation of law, and (ii) Amperesand (Party A) may assign to any Affiliate on prior written notice only (no consent required). Any purported assignment in violation is null and void; assignment does not relieve the assignor of its obligations; the Agreement is for the sole benefit of the Parties and their successors and permitted assigns (no third-party beneficiaries). (mNDA 4.7 Clause 15.)",
+      "risk_weight": 4,
+      "presence": "optional",
+      "walk_away_triggers": [
+        "Agreement freely binding on 'successors and assigns' with no consent or notice requirement, allowing either party to assign automatically on acquisition/merger and transfer access to Amperesand's CI to an unknown third party (some counterparty paper: rights/obligations bind 'successors and permitted assigns' with no consent gate beyond 'permitted').",
+        "Counterparty granted a unilateral right to assign to its affiliates/subsidiaries freely or in M&A without consent, while Amperesand needs the counterparty's consent (asymmetry against Amperesand).",
+        "In a mutual NDA, the assignment restriction framed only against the 'Recipient', leaving the Discloser free to assign without consent.",
+        "M&A/change-of-control carve-out with a one-sided non-competitor restriction applying only to Amperesand's acquirer.",
+        "No assignment clause at all, leaving assignment to permissive local-law defaults that could let the counterparty assign without consent."
+      ],
+      "acceptable_fallbacks": [
+        "A flat mutual 'no assignment without prior written consent' (seen on some counterparty paper) is acceptable when symmetrical, even if it drops Amperesand's Affiliate-on-notice carve-out.",
+        "A change-of-control consent requirement is acceptable when reciprocal and not limited to competitor-acquirers of Amperesand only."
+      ]
+    },
+    {
+      "clause_type": "residuals",
+      "title": "Residuals (Prohibited)",
+      "standard_position": "Amperesand's template contains NO residuals clause and no competitive-use carve-out; the recipient must keep CI confidential and use it solely for the Purpose, with no right to use memory-retained 'residuals' or to apply CI to evaluate, develop, or invest in competing products or companies.",
+      "risk_weight": 5,
+      "presence": "prohibited",
+      "walk_away_triggers": [
+        "Broad residuals clause permitting use of information retained in the unaided memory of representatives for any purpose.",
+        "Competitive-use or investment-management carve-out expressly permitting a counterparty to use Amperesand's CI to evaluate, fund, or invest in companies competitive with Amperesand.",
+        "Provision allowing a counterparty's affiliates, incubation programs, or portfolio companies to develop information similar to Amperesand's CI with no obligation to disclose or restrict.",
+        "Non-restriction or anti-exclusivity clause leaving a counterparty free to evaluate, acquire, or independently develop competing technologies without a written agreement.",
+        "Any residuals or employee-reassignment clause lacking an express prohibition on direct use of Confidential Information."
+      ],
+      "acceptable_fallbacks": [
+        "If a residuals concept is unavoidable on a large counterparty's form, narrow it to truly unaided-memory general skills/knowledge, expressly exclude any deliberate memorization, and preserve the bar on using CI for competing products (counsel sign-off required)."
+      ]
+    },
+    {
+      "clause_type": "non_solicitation",
+      "title": "Non-Solicitation (Prohibited)",
+      "standard_position": "Amperesand's template contains NO standalone non-solicitation covenant and no non-use/non-diversion covenant; an NDA is a confidentiality instrument, not a trade-restraint vehicle. An inserted non-solicit is a prohibited, high-severity, walk-away clause.",
+      "risk_weight": 5,
+      "presence": "prohibited",
+      "walk_away_triggers": [
+        "Any standalone non-solicitation covenant untethered from use of Confidential Information.",
+        "Non-solicit period exceeding 12 months, or with no fixed term / perpetual restraint.",
+        "Unilateral / one-way non-solicit binding only Amperesand.",
+        "Non-solicit lacking a general-advertising and non-targeted-recruiting carve-out (capturing responses to public job postings).",
+        "Customer/supplier non-solicit broad enough to restrain ordinary business (a de facto non-compete).",
+        "Any accompanying non-competition covenant.",
+        "Liquidated-damages or indemnity tied to a non-solicit breach."
+      ],
+      "acceptable_fallbacks": [
+        "A narrow, use-tethered, MUTUAL non-employee-solicitation covenant <=12 months with a general-advertising carve-out may be entertained only as a documented fallback on counterparty paper, not as Amperesand-standard language (counsel sign-off required)."
+      ]
+    },
+    {
+      "clause_type": "non_competition",
+      "title": "Non-Competition (Prohibited)",
+      "standard_position": "Amperesand's NDA template contains NO non-competition clause; the NDA remains a confidentiality instrument only. Preferred position is no non-compete, no non-compete-taint restriction, and no non-compete waiver in either direction.",
+      "risk_weight": 5,
+      "presence": "prohibited",
+      "walk_away_triggers": [
+        "One-sided non-compete-taint or 'residual contamination' restriction imposed only on Amperesand barring Amperesand personnel exposed to the counterparty's CI from working on competing technology -- a de facto non-compete on Amperesand's engineering teams.",
+        "Broad definition of 'competes' (same/similar functionality usable as an alternative) tied to a personnel-segregation or taint obligation that can sterilize Amperesand's R&D roadmap.",
+        "Non-compete waiver extracted from Amperesand as discloser requiring it to acknowledge the counterparty may invest in/consult for/service Amperesand competitors, with no reciprocal protection.",
+        "Any asymmetric non-compete binding only Amperesand while leaving the counterparty unrestricted in a mutual NDA.",
+        "Any actual non-compete (restraint on Amperesand competing) embedded in an NDA."
+      ],
+      "acceptable_fallbacks": [
+        "No fallback as a standard term; if a counterparty insists, the only entertained position is deletion. A narrowly time-bound, use-tethered, mutual restriction is escalated to counsel as an exception, not accepted as drafted."
+      ]
+    },
+    {
+      "clause_type": "indemnification",
+      "title": "Indemnification (Prohibited)",
+      "standard_position": "Amperesand's standard NDA contains NO indemnification, hold-harmless, or fee-shifting provision; confidentiality breaches are remedied through general-law damages and equitable relief. Preferred position is to strike any indemnity or attorneys'-fees clause entirely.",
+      "risk_weight": 5,
+      "presence": "prohibited",
+      "walk_away_triggers": [
+        "Uncapped, one-way indemnity running only against the Recipient for any breach; if unavoidable, demand it be mutual and subject to a liability cap and exclusion of indirect/consequential loss.",
+        "Legal/attorneys' costs recoverable on a solicitor-client or 'indemnity basis' rather than reasonable party-and-party costs.",
+        "Indemnity or liability extending to 'attempted or threatened' disclosure/violation and to a broad list of affiliates, agents, advisors, shareholders, officers, and directors as indemnitees.",
+        "Uncapped explicit damages liability for unauthorized use/disclosure with no limitation of liability.",
+        "Any non-mutual fee-shifting or indemnity that runs only in the counterparty's favour.",
+        "Indemnity lacking carve-outs aligned to the confidentiality exclusions (compelled disclosure, independently developed information, publicly available information)."
+      ],
+      "acceptable_fallbacks": [
+        "If indemnity is unavoidable on a large counterparty's form, narrow to mutual, capped, confidentiality-breach-only indemnity excluding indirect/consequential loss and aligned to the exclusions (counsel sign-off required)."
+      ]
+    },
+    {
+      "clause_type": "notices_misc",
+      "title": "Notices and Miscellaneous (Boilerplate)",
+      "standard_position": "Notices effective on delivery by hand, email, or certified/registered mail to specified addresses (mNDA 4.7 Clause 9). Clean boilerplate: no-waiver (Clause 11), severability (Clause 13), entire agreement/merger with written-signed amendments (Clause 14), counterparts with PDF/e-signature execution (Clause 17). E-signature statutory reference matched to governing law -- ESIGN + Delaware UETA on US/Delaware paper. No extra regulatory obligations.",
+      "risk_weight": 2,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Bundled Singapore-law statutory references embedded in a Delaware/US-governed agreement, creating governing-law conflict over personal-data, related-corporation, and signature-validity definitions -- must be cleaned before signing.",
+        "Attorneys'-fee / prevailing-party fee-shifting clause not in Amperesand's standard, creating asymmetric or bilateral litigation cost exposure -- resist or strike.",
+        "Incomplete or blank counterparty notice details (placeholder name/title/email) left in an executed agreement, undermining valid service of notices -- never sign with placeholder notice fields.",
+        "Unilateral right to transfer the NDA and all received CI to a government agency without further consent -- refuse or cabin with consent/notice.",
+        "Securities-trading / material-non-public-information acknowledgment imposing affirmative internal compliance and personnel-advisory obligations beyond an NDA's scope -- push back as out-of-scope.",
+        "Export-control clause that conditions disclosure on prior government permits/authorizations or makes one party liable for the other's unauthorized export, rather than each party bearing its own compliance (export terms seen on some counterparty paper) -- resist the asymmetric/operationally burdensome form.",
+        "Standalone data-privacy / data-breach regime imposing fixed breach-notification windows (e.g., 72 hours), affirmative assistance with data-subject inquiries, and remediation at the receiving party's expense (seen on some counterparty paper) -- out-of-scope for an NDA; strike or scope-limit and make mutual.",
+        "Jury-trial waiver or other US-litigation-specific boilerplate inserted where it signals counterparty drafting control toward litigation.",
+        "Perpetual / unlimited-in-time survival of personal-data or other miscellaneous obligations -- cap to a defined term.",
+        "Interpretation/'arm's length, no construction against drafter' clause is harmless (seen on some counterparty paper) but watch for paired one-sided substantive terms."
+      ],
+      "acceptable_fallbacks": [
+        "An ESIGN/UETA (and, for cross-border counterparties, eIDAS) e-signature acknowledgment is acceptable.",
+        "A mutual export-control acknowledgment where each party bears its own compliance is acceptable.",
+        "A no-third-party-beneficiaries clause (seen on some counterparty paper) is acceptable and consistent with the template.",
+        "A mutual, reasonably-scoped data-protection clause is acceptable where Amperesand actually shares personal data and the obligations are reciprocal."
+      ]
+    },
+    {
+      "clause_type": "entire_agreement_amendments",
+      "title": "Entire Agreement / Amendments",
+      "standard_position": "The Agreement is the final, complete, and exclusive agreement of the Parties on the subject matter, superseding and merging all prior discussions; no modification or amendment is effective unless in writing and signed by authorized representatives of both Parties. (mNDA 4.7 Clause 14.)",
+      "risk_weight": 2,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Entire-agreement clause drafted to supersede or override a more protective definitive/commercial agreement between the Parties.",
+        "Amendment permitted by conduct, email, or one-sided written notice rather than a signed writing by both Parties.",
+        "Merger clause paired with a non-reliance provision that disclaims the AS-IS no-warranty allocation in a way disadvantaging Amperesand."
+      ],
+      "acceptable_fallbacks": [
+        "A standard mutual entire-agreement + written-signed-amendment clause (seen on some counterparty paper) is acceptable and mirrors the template."
+      ]
+    }
+  ]
+}

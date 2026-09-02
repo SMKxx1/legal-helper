@@ -1,0 +1,7 @@
+{
+  "risk_tier_allowed": ["red", "yellow"],
+  "false_green_budget_eligible": true,
+  "expect_routing_flag": true,
+  "must_find": [],
+  "notes": "A services invoice, not an NDA. The correct behavior is that ROUTING flags it (routing.router.is_nda=false OR routing.reasons non-empty) rather than the engine emitting a confident GREEN 'clean NDA' verdict. expect_routing_flag=true enforces the routing check; false_green_budget_eligible=true (green forbidden) guards against a confident green on an out-of-scope document. No must_find findings: the point is the routing gate, not a specific clause defect."
+}

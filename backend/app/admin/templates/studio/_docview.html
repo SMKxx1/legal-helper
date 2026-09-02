@@ -1,0 +1,28 @@
+{#- Faithful, addressable document view — the PART-LENGTH offset model.
+
+    Each paragraph is ONE .stu-seg node carrying its locator. Every child of a seg is a PART node
+    carrying data-plen = the number of characters it occupies in docview.paragraph_text:
+      · <span class="stu-run" data-plen=N>   — a formatting run slice whose rendered text IS its
+        underlying text (an intra-run selection offset maps 1:1);
+      · <span class="stu-tok" data-plen=N>   — an ATOMIC token chip rendering the friendly LABEL
+        while occupying len("{{raw}}") underlying characters. data-plen is the raw length, never
+        the label length.
+    The client (studio.js) recovers tokenize offsets by summing data-plen across parts — NEVER
+    from textContent — which is what lets the view show labels + formatting without desyncing the
+    server-side offsets. CRITICAL: emit NO text nodes inside a seg beyond the part spans (a stray
+    text node carries no data-plen and would make the boundary walk ambiguous). Whitespace between
+    segs/blocks lives OUTSIDE every seg node and never affects a per-seg offset.
+    Tables render as real <table> grids; the segs inside keep their own tbl:… locators. -#}
+{%- macro seg_node(seg) -%}
+<div class="stu-seg{{ ' stu-seg-empty' if not seg.parts }}{{ ' stu-h' ~ seg.heading if seg.heading }}{{ ' stu-align-' ~ seg.align if seg.align }}" data-locator="{{ seg.locator }}" data-kind="{{ seg.kind }}">{% for part in seg.parts %}{% if part.token %}<span class="stu-tok" data-token="{{ part.name }}" data-plen="{{ part.plen }}" contenteditable="false" title="{{ '{{' ~ part.name ~ '}}' }}">{{ part.label }}</span>{% else %}<span class="stu-run{{ ' stu-b' if part.bold }}{{ ' stu-i' if part.italic }}{{ ' stu-u' if part.underline }}" data-plen="{{ part.plen }}">{{ part.text }}</span>{% endif %}{% endfor %}</div>
+{%- endmacro -%}
+{%- macro render_blocks(blocks) -%}
+{%- for b in blocks -%}
+{%- if b.type == 'table' -%}
+<table class="stu-table"><tbody>{% for row in b.rows %}<tr>{% for cell in row %}<td>{{ render_blocks(cell.blocks) }}</td>{% endfor %}</tr>{% endfor %}</tbody></table>
+{%- else %}
+{{ seg_node(b.seg) }}
+{%- endif -%}
+{%- endfor %}
+{%- endmacro -%}
+{{ render_blocks(blocks) }}

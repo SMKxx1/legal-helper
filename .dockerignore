@@ -1,0 +1,31 @@
+# Docker build context = REPO ROOT (backend/Dockerfile ships backend/app + the
+# repo-root engine data dirs playbook/ + samples/ + the word-addin/ bundle).
+# Everything the image does NOT need is excluded here to keep the context small.
+
+.git
+.github
+.claude
+docs
+deploy
+reference
+
+# Python venv / caches / tooling
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+backend/tests
+backend/scripts
+backend/data
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Node dev deps (add-in tests/tooling only — the served static files are kept)
+**/node_modules
+
+# OS cruft
+**/.DS_Store
+*.log

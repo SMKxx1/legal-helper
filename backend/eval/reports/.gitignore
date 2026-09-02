@@ -1,0 +1,4 @@
+# Generated eval reports are build artifacts, not source. Attach the relevant
+# report JSON to the PR (see docs/EVALUATION.md) rather than committing it here.
+*.json
+!.gitignore

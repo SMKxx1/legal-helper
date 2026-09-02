@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+           xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+           xsi:type="TaskPaneApp">
+  <Id>7b3f9a42-1c6e-4d2a-9f51-0a1b2c3d4e5f</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>Amperesand</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="Amperesand NDA Review"/>
+  <Description DefaultValue="Review the open NDA against Amperesand's playbook and apply redlines as tracked changes."/>
+  <!-- DEPLOY: every https://localhost:3000 URL in this manifest (icons, support, app
+       domains, source location, resources below) is the local dev origin. Swap them all
+       for the production domain before publishing the add-in. -->
+  <IconUrl DefaultValue="https://localhost:3000/assets/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/icon-80.png"/>
+  <SupportUrl DefaultValue="https://localhost:3000/"/>
+  <!-- The add-in calls the engine API; list its origin so Office allows navigation. -->
+  <AppDomains>
+    <AppDomain>https://localhost:3000</AppDomain>
+  </AppDomains>
+  <Hosts>
+    <Host Name="Document"/>
+  </Hosts>
+  <Requirements>
+    <Sets DefaultMinVersion="1.4">
+      <Set Name="WordApi" MinVersion="1.4"/>
+    </Sets>
+  </Requirements>
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://localhost:3000/taskpane.html"/>
+  </DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Document">
+        <DesktopFormFactor>
+          <GetStarted>
+            <Title resid="GetStarted.Title"/>
+            <Description resid="GetStarted.Description"/>
+            <LearnMoreUrl resid="GetStarted.LearnMoreUrl"/>
+          </GetStarted>
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <OfficeTab id="TabHome">
+              <Group id="Amperesand.Group">
+                <Label resid="Group.Label"/>
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16"/>
+                  <bt:Image size="32" resid="Icon.32"/>
+                  <bt:Image size="80" resid="Icon.80"/>
+                </Icon>
+                <Control xsi:type="Button" id="Amperesand.OpenPane">
+                  <Label resid="OpenPane.Label"/>
+                  <Supertip>
+                    <Title resid="OpenPane.Label"/>
+                    <Description resid="OpenPane.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>AmperesandTaskpane</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Url"/>
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    <Resources>
+      <bt:Images>
+        <bt:Image id="Icon.16" DefaultValue="https://localhost:3000/assets/icon-16.png"/>
+        <bt:Image id="Icon.32" DefaultValue="https://localhost:3000/assets/icon-32.png"/>
+        <bt:Image id="Icon.80" DefaultValue="https://localhost:3000/assets/icon-80.png"/>
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3000/taskpane.html"/>
+        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://localhost:3000/"/>
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="GetStarted.Title" DefaultValue="Amperesand NDA Review"/>
+        <bt:String id="Group.Label" DefaultValue="Amperesand"/>
+        <bt:String id="OpenPane.Label" DefaultValue="NDA Review"/>
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="GetStarted.Description" DefaultValue="Open the panel to review the NDA and apply redlines."/>
+        <bt:String id="OpenPane.Tooltip" DefaultValue="Review this NDA against Amperesand's playbook."/>
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>

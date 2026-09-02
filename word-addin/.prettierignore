@@ -1,0 +1,16 @@
+# The add-in is plain JS with no build — format the code files only.
+# (Comments must be on their own line; inline comments are treated as part of the pattern.)
+
+# gitignored / sensitive — never touch
+config.js
+dev-server.mjs
+SETUP-RAILWAY.md
+
+# binary assets
+assets/
+
+# Office manifests — no Prettier parser
+*.xml
+
+# docs
+*.md

@@ -1,0 +1,363 @@
+{
+  "contract_type": "nda",
+  "version_no": 4,
+  "variant_key": "SG_Service_Provider",
+  "variant": { "jurisdiction": "SG", "counterparty": "service_provider", "mutuality": "unilateral" },
+  "entity": "Amperesand Pte Ltd",
+  "status": "draft-v4 (internal assistive; a human reviewer is the final authority)",
+  "defaults": {
+    "perspective_preference": "One-way with Amperesand Pte Ltd as the SOLE Disclosing Party and the service-provider counterparty as Receiving Party — this favorable one-sidedness is INTENTIONAL: Amperesand shares product drawings, designs, engineering and manufacturing know-how to evaluate/engage a vendor (manufacturer, contract assembler, test lab, engineering/architecture consultant). The uNDA is an evaluation-stage confidentiality instrument; ownership of any work product belongs in the downstream definitive services/manufacturing agreement, not the NDA.",
+    "our_role": "disclosing",
+    "governing_law": "Singapore",
+    "forum": "SIAC arbitration under prevailing SIAC Rules, seat Singapore, single arbitrator, English; court carve-out for specific performance / injunctive relief in any court of competent jurisdiction (template Clause 16 + Clause 12)",
+    "term_standard": "Agreement term: 1 year from the Effective Date, terminable earlier by either Party on written notice (template Clause 8). Note: one executed deal used a 30-day prior-written-notice termination, an acceptable refinement.",
+    "survival_standard": "Template Clause 8 sets the AGREEMENT term to expire one (1) year from the Effective Date and states each Party's rights/obligations survive termination/expiration, but it prescribes NO finite confidentiality-survival period (Clause 4 cross-references 'the time period prescribed in Clause 8', yet Clause 8 prescribes none) — this is the well-known open-ended uNDA drafting defect. Adopted internal default (NOT template-true; adopted-pending-counsel): 5 years per disclosure for ordinary Confidential Information + an uncapped trade-secret tail (protected for as long as it remains a trade secret under applicable Singapore law / equitable breach-of-confidence doctrine), measured per disclosure (rolling, per-item), with a 3-year pre-authorized fallback. A 3-year-from-Effective-Date figure appears in several executed deals — this is an OBSERVED EXECUTED / corpus-derived value and acceptable fallback, NOT the template baseline.",
+    "required_carveouts": [
+      "prior_possession (already in possession of or known to the Receiving Party before disclosure)",
+      "public_domain (in or comes into the public domain through no fault or breach by the Receiving Party or its Representatives)",
+      "third_party (received from a third party not under any obligation of confidentiality in disclosing it)",
+      "independent_development (independently developed by the Receiving Party without regard or reference to the Confidential Information)",
+      "written_authorization (approved for release or use by written authorization of the Disclosing Party)"
+    ],
+    "counsel_must_confirm": [
+      "ADOPTED (pending counsel): template Clause 8 prescribes NO finite confidentiality-survival period (the Clause 4 -> Clause 8 cross-reference points to a period Clause 8 never sets — the open-ended uNDA drafting defect). Adopted default: 5yr per-disclosure ordinary CI + uncapped trade-secret tail, measured per disclosure, with a 3-year pre-authorized fallback. Confirm approved survival drafting language.",
+      "ADOPTED (pending counsel): an uncapped trade-secret tail (protected for as long as it qualifies as a trade secret under Singapore law / equitable breach-of-confidence) is the standard survival default; confirm approved language.",
+      "OBSERVED CORPUS (not template): several executed deals used 3 years from the Effective Date, and one used 3 years from termination/expiration. These are corpus-derived fallbacks, not the template baseline; confirm whether to adopt the re-anchor to 'from termination or expiration' to preserve a real post-expiry tail.",
+      "ASPIRATIONAL / NOT TEMPLATE: template Clause 10 is a NARROW 'No Transfer of Rights' only (Amperesand retains rights in its CI, grants no license, waives no patent/copyright/trademark/mask-work rights). It does NOT vest broad work-product/IP in Amperesand. If Amperesand wants broad work-product vesting (inventions/designs/know-how created by the vendor assigned to Amperesand) for service-provider engagements, confirm whether to (a) add an express vesting clause to the NDA, or (b) defer it to the downstream definitive services agreement (preferred). The NDA must NOT be treated as the IP-vesting instrument by default.",
+      "PDPA handling: the CI definition sweeps in 'shared personal data'. Confirm a personal-data/privacy position where the vendor will process Amperesand or third-party personal data (purpose limitation, security, sub-processing, breach notice, return/deletion).",
+      "Pre-execution hygiene: some executed deals in the set were signed with unresolved bracketed Purpose language and/or unfilled placeholders (jurisdiction/UEN/notice email/Attn/signatory name and title). Confirm a no-placeholders-at-signature gate."
+    ]
+  },
+  "positions": [
+    {
+      "clause_type": "confidentiality_definition",
+      "title": "Definition of Confidential Information",
+      "standard_position": "Confidential Information is defined broadly as any and all information relating to the Purpose, disclosed/furnished/communicated in writing or orally by or on behalf of Amperesand (the Disclosing Party) to the Receiving Party or its authorized third party, which is marked 'confidential', communicated as such, OR (per the catch-all) is reasonably apparent to someone familiar with the subject area as the type typically considered confidential, or that the Receiving Party has reason to believe may be confidential. It expressly includes (a) the existence/status of discussions and the Purpose; (b) the terms of the Agreement; (c) Amperesand's business/affairs/customers/suppliers/plans and its IP, operations, processes, product information, know-how, technical information, designs, trade secrets and software (and those of its Affiliates / future portfolio companies); (d) any derived findings/data/analysis; (e) any shared personal data; (f) third-party confidential information held by Amperesand; and (g) any other information identified as confidential. No marking is required to qualify and there is no oral-to-writing confirmation deadline.",
+      "risk_weight": 4,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Definition rewritten to make it bilateral/recipient-favorable such that the service provider's information (its tooling, methods, yield data, samples) is auto-deemed confidential and constrains Amperesand's use, while narrowing what Amperesand discloses — resist; on SG_SP paper Amperesand is the protected discloser.",
+        "Requirement that information be marked 'confidential' (or reduced to writing and marked within a fixed window) to qualify — strips protection from Amperesand's oral/visual disclosures of drawings and designs in vendor walkthroughs; refuse and keep the 'reasonably understood to be confidential' catch-all.",
+        "Definition hard-scoped to a single deliverable or technology so Amperesand's broader shared information (financials, roadmap, customer/supplier identities) falls outside protection.",
+        "Counterparty inserts a cloud/third-party-processing acknowledgment that can be read as Amperesand accepting reduced confidentiality controls for cloud-stored CI (observed in an executed deal where a 'cloud-based services' acknowledgment was added) — accept only if it does not dilute the non-disclosure/use obligation.",
+        "Burden-of-proof-on-Disclosing-Party language, or deletion of the catch-all, that gives the vendor a marking safe harbor and shrinks scope."
+      ],
+      "acceptable_fallbacks": [
+        "Adding a narrow, neutral cloud/third-party-services acknowledgment (as observed in an executed deal) provided the recipient's confidentiality and use obligations remain unchanged.",
+        "A short, reasonable oral-disclosure confirmation practice (e.g., follow-up email summary) so long as failure to confirm does NOT forfeit protection."
+      ]
+    },
+    {
+      "clause_type": "permitted_purpose",
+      "title": "Permitted Purpose (evaluation of the service engagement)",
+      "standard_position": "Confidential Information may be used solely for the single 'Purpose' stated in the recitals — evaluating a potential engagement of the Receiving Party to perform defined services for Amperesand (e.g., manufacture/supply of transformers, inductors and electromechanical parts; sending product drawings; or evaluating the vendor's capabilities for a defined business opportunity) — and for no other purpose. The Purpose must be drafted to a single, complete definition with the services described.",
+      "risk_weight": 4,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Purpose expanded to permit the vendor's ongoing operational or commercial use of Amperesand's drawings/designs beyond evaluation, without a separate definitive services/manufacturing agreement — limit to evaluation; defer production/use rights to the downstream agreement.",
+        "Vendor-controlled open-ended catch-all ('and/or such other purposes as the Receiving Party deems necessary') giving the service provider unilateral latitude to expand use of Amperesand's information — strike.",
+        "Anti-reverse-engineering / design-around language buried in the purpose clause drafted broadly enough to constrain Amperesand's own legitimate engineering — narrow to genuine misappropriation of disclosed CI.",
+        "Vendor publication/portfolio-use right over results, samples or case studies with only an advance-review window and a 'reasonable request' (not consent) removal standard — require a consent gate or remove."
+      ],
+      "acceptable_fallbacks": [
+        "Tightening the Purpose to name the specific deliverable/services scope (executed deals ranged from 'send product drawings' to design/manufacture of specific parts) — narrower is better for Amperesand as discloser.",
+        "Permitting the vendor to disclose CI to its own need-to-know subcontractors strictly for performing the evaluation, provided the vendor remains responsible for their compliance."
+      ]
+    },
+    {
+      "clause_type": "exclusions_carveouts",
+      "title": "Exclusions from Confidential Information",
+      "standard_position": "Five exclusions only: (a) prior possession/knowledge before disclosure; (b) public domain through no fault/breach of the Receiving Party or its Representatives; (c) third-party receipt where the third party is not under any confidentiality obligation; (d) independent development without regard or reference to the CI; (e) approved for release/use by written authorization of Amperesand. Compelled disclosure is handled separately as Required Disclosure (Clause 3), not as an exclusion.",
+      "risk_weight": 4,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Independent-development carve-out broadened, or paired with a broad work-product-vesting clause, so the vendor can claim Amperesand's disclosed designs as 'independently developed' — keep the 'without regard or reference to the CI' test tight.",
+        "Public-domain carve-out drafted as 'through Receiving Party breach only', which would still bind the vendor on information already public at disclosure — must read 'no fault or breach of the Receiving Party'.",
+        "Subjective/distorted carve-out tests (e.g., third-party receipt without the 'not under any obligation of confidentiality' condition) that let the vendor launder CI through a friendly third party.",
+        "Addition of further recipient-favorable exclusions (e.g., 'information the Receiving Party deems non-confidential', residuals, 'information retained in memory') that erode the controlled five-exclusion set."
+      ],
+      "acceptable_fallbacks": [
+        "Tightening carve-out (a) — e.g., 'provided that the source of such information is not bound by a contractual obligation of confidentiality' — is Amperesand-favorable and should be retained where the vendor proposes it.",
+        "Reasonable documentary-proof standard requiring the Receiving Party to evidence that an exclusion applies (favors Amperesand as discloser)."
+      ]
+    },
+    {
+      "clause_type": "compelled_disclosure",
+      "title": "Required Disclosure (compelled by law)",
+      "standard_position": "Where the Receiving Party (or its Representative) is compelled by a valid order of a court, governmental body or regulatory authority having jurisdiction (including the relevant securities exchange regulator), it must (i) give Amperesand reasonable prior written notice, (ii) disclose only the CI to the extent required, and (iii) use reasonable efforts to obtain confidential treatment; if prior notice is impossible, it must, to the extent permitted by law, inform Amperesand of the full circumstances and the information disclosed as soon as reasonably practicable.",
+      "risk_weight": 3,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Deletion of the prior-notice/minimization/confidential-treatment mechanism, leaving the vendor able to disclose Amperesand's CI under any 'request' without notice.",
+        "Shifting the cost of resisting compelled disclosure onto Amperesand as Disclosing Party as a baseline term.",
+        "Mandatory obligation requiring the vendor to take 'all assistance / all steps Amperesand may require' to fight compelled disclosure where this cedes control of Amperesand's legal-process response."
+      ],
+      "acceptable_fallbacks": [
+        "Notice 'to the extent legally permitted' where a gag order or statute prohibits advance notice.",
+        "Retaining a securities-exchange-regulator reference (template-standard) on Singapore paper."
+      ]
+    },
+    {
+      "clause_type": "obligations_of_confidentiality",
+      "title": "Confidentiality obligations of the Receiving Party",
+      "standard_position": "The Receiving Party must hold all CI in strict confidence, not disclose it to any third party without Amperesand's prior written approval, use it for no purpose other than the Purpose, apply at least the same degree of care it uses for its own CI of like importance (but never less than reasonable care), limit copying/recording to what is strictly necessary for the Purpose (copies remaining Amperesand's property), and immediately notify Amperesand of any loss or unauthorized disclosure. Access is limited to need-to-know Representatives (directors, officers, employees, consultants, advisers) and the vendor is responsible for any breach by its Representatives and must take all reasonable measures (including court proceedings) to restrain unauthorized disclosure.",
+      "risk_weight": 4,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Care standard diluted below 'reasonable care', or the use-limitation ('no purpose other than the Purpose') deleted so the vendor can exploit Amperesand's drawings/designs operationally.",
+        "Carve-out letting the vendor share Amperesand CI with its affiliates, group companies, subcontractors or financing sources without a direct confidentiality obligation flowing down — refuse open-ended downstream sharing.",
+        "Deletion of the immediate-notification-on-loss obligation, or of the 'copies remain Amperesand's property' provision.",
+        "AI-training / AI-tool-development use of Amperesand CI not expressly prohibited, or a one-sided cybersecurity-audit / remediation-at-Amperesand's-expense regime bolted onto the clause — refuse or scope-limit."
+      ],
+      "acceptable_fallbacks": [
+        "Need-to-know disclosure to the vendor's own directors/officers/employees/consultants/advisers for the Purpose, with the vendor fully responsible for their breaches.",
+        "Reasonable copying necessary to perform the evaluation, with all copies remaining Amperesand's property and subject to return/destruction."
+      ]
+    },
+    {
+      "clause_type": "permitted_disclosures",
+      "title": "Permitted disclosures (Representatives and compelled)",
+      "standard_position": "The Receiving Party may disclose CI (a) to its Representatives (directors, officers, employees, consultants, advisers) on a need-to-know basis for the Purpose, remaining responsible for their compliance; and (b) where compelled by law per the Required Disclosure clause (with notice, minimization and confidential-treatment efforts). No other disclosure is permitted without Amperesand's prior written approval.",
+      "risk_weight": 3,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Open-ended disclosure to classes of third parties (vendor's 'affiliates', 'group', 'subcontractors', 'financing sources') without Amperesand consent and without a flow-down obligation.",
+        "Unilateral government/regulator pass-through letting the vendor disclose Amperesand CI to an agency without notice, or a standing third-party inspection right not tied to actual legal compulsion.",
+        "Requiring prior written notice to Amperesand before the vendor shares with its OWN need-to-know personnel (operationally unworkable)."
+      ],
+      "acceptable_fallbacks": [
+        "Disclosure to the vendor's professional advisers (legal/accounting) bound by professional confidentiality.",
+        "Naming specific approved subcontractors in a schedule, each subject to written confidentiality undertakings."
+      ]
+    },
+    {
+      "clause_type": "term_of_confidentiality",
+      "title": "Survival of confidentiality obligations",
+      "standard_position": "Template Clause 8 sets the AGREEMENT term to expire one (1) year from the Effective Date and states each Party's rights/obligations survive any termination/expiration, but it prescribes NO finite confidentiality-survival period — Clause 4 cross-references 'the time period prescribed in Clause 8', yet Clause 8 prescribes none. This is the open-ended uNDA drafting defect; the template is NOT template-true for any survival figure. Adopted internal default (NOT template, adopted-pending-counsel): ordinary Confidential Information protected for 5 years per disclosure (3-year pre-authorized fallback); trade secrets protected for as long as they remain trade secrets under applicable Singapore law / equitable breach-of-confidence doctrine (uncapped); measured from the date of each disclosure (rolling, per-item), NOT the Effective Date. Pending counsel refinement.",
+      "risk_weight": 4,
+      "presence": "required",
+      "walk_away_triggers": [
+        "No post-termination survival at all, or confidentiality co-terminous with the 1-year agreement term, leaving Amperesand's disclosed designs unprotected once the short term ends.",
+        "A finite survival cap on trade secrets (e.g., 'all obligations end after N years' with no trade-secret tail) when Amperesand is disclosing trade-secret-grade manufacturing/design IP.",
+        "Survival anchored to the Effective Date with a period equal to or shorter than the agreement term, producing zero or near-zero effective post-expiry tail.",
+        "Internally contradictory or word/numeral-mismatched survival figures (spelled-out number disagreeing with the parenthetical) — must be corrected before signature."
+      ],
+      "acceptable_fallbacks": [
+        "3 years per disclosure for ordinary CI (the pre-authorized fallback) PLUS the uncapped trade-secret tail.",
+        "3 years from the Effective Date (OBSERVED EXECUTED / corpus-derived value across several executed deals) — acceptable fallback, NOT the template baseline.",
+        "3 years from termination/expiration (OBSERVED in an executed deal) — preferred over from-Effective-Date because it preserves a real post-expiry tail.",
+        "Trade-secret information protected for as long as it remains a trade secret, layered over the fixed ordinary-CI period."
+      ]
+    },
+    {
+      "clause_type": "return_destruction",
+      "title": "Return or destruction of Confidential Information",
+      "standard_position": "Within 14 days of (i) Amperesand's written request or (ii) expiration/termination, the Receiving Party must return or destroy all documents and tangible materials representing Amperesand's CI and all copies, except it may retain one (1) archival copy (including electronic records from automatic archiving/back-up) solely to perform surviving obligations and as required by law, court, regulator, or its internal audit/compliance procedures, with the Agreement continuing to apply to any retained copy.",
+      "risk_weight": 3,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Retention satisfied merely by reference to the vendor's own record-retention/document-governance policy, letting it keep Amperesand's drawings/designs indefinitely — renders the destroy obligation illusory.",
+        "Open-ended/indefinite retention of backup/archival copies with no sunset, especially negating destruction of all electronically stored CI.",
+        "Broad carve-out permitting retention of derivative work product (notes, summaries, analyses) built from Amperesand CI.",
+        "Return-only with no destruction option and no certification, forcing physical return of all electronic CI."
+      ],
+      "acceptable_fallbacks": [
+        "The single archival/back-up retention copy (template-standard) limited to legal/compliance/surviving-obligation purposes with the Agreement continuing to apply.",
+        "Destruction certification by an officer in lieu of physical return."
+      ]
+    },
+    {
+      "clause_type": "no_license_ip",
+      "title": "No transfer of rights, title, or interest",
+      "standard_position": "Amperesand retains all right, title and interest in its Confidential Information (including copies and extracts) and grants no licenses or rights except those expressly set out in the Agreement; nothing in the Agreement grants a license to, or waives any rights in, any patents, copyrights, trademarks or mask works belonging to Amperesand. (Template Clause 10 — a NARROW 'No Transfer of Rights, Title, or Interest' clause; it does NOT vest the vendor's work product, inventions or designs in Amperesand.)",
+      "risk_weight": 3,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Any provision purporting to grant the vendor a license to Amperesand's IP, or deeming disclosure an implied license/waiver of Amperesand's patents/copyrights/trademarks/mask works.",
+        "An IP-assignment / vesting / work-for-hire obligation requiring Amperesand (if roles flip and it becomes a recipient) to assign or transfer ownership of IP, inventions, designs or 'derivatives of Confidential Information' to the vendor — an NDA must not become an IP-transfer instrument; resist.",
+        "A patent-filing prohibition or 'derived directly or indirectly / in the course of interaction' IP-capture language that would bind Amperesand's own independent engineering.",
+        "A clause vesting ownership of vendor-created tooling, fixtures or process improvements (made using Amperesand's designs) in the vendor with no license back to Amperesand."
+      ],
+      "acceptable_fallbacks": [
+        "A neutral statement that each party retains its own pre-existing IP (acceptable since Amperesand is the primary discloser; ensure vendor improvements built on Amperesand's CI do not vest solely in the vendor).",
+        "Deferring all work-product/deliverable ownership expressly to the definitive services agreement (preferred), with the NDA silent on vesting."
+      ]
+    },
+    {
+      "clause_type": "work_product_deliverables",
+      "title": "Work product / deliverables ownership (service-provider-specific; OBSERVED/UPGRADE, not template)",
+      "standard_position": "The canonical SG_SP template contains NO work-product / deliverables / IP-vesting clause — template Clause 10 is a narrow 'No Transfer of Rights' only (see no_license_ip). UPGRADE / OBSERVED position (adopted-pending-counsel, NOT template baseline): where Amperesand wants the vendor's work product (inventions, discoveries, improvements, processes, know-how, copyright works, new designs and IP created by the Receiving Party in the course of the engagement) to vest in and become the absolute property of Amperesand — with the vendor obliged to execute documents to perfect that vesting — this should be added as an express clause. The uNDA covers the EVALUATION stage; the preferred home for full deliverables, acceptance, license and ownership mechanics is the downstream definitive services/manufacturing agreement, not the NDA. No standalone deliverables-license should be granted to the vendor in the NDA.",
+      "risk_weight": 4,
+      "presence": "optional",
+      "walk_away_triggers": [
+        "Vendor asserts ownership of, or a broad license to, the deliverables/work product, or a right to reuse Amperesand-derived designs for other customers.",
+        "Vendor reserves rights in 'tooling', 'jigs', 'fixtures' or 'process know-how' embodying Amperesand's designs without an Amperesand license-back where Amperesand needs continuity of supply.",
+        "Residuals-style right letting vendor personnel reuse Amperesand design know-how from memory on competing or other-customer work."
+      ],
+      "acceptable_fallbacks": [
+        "Vendor retains ownership of its generic, pre-existing tooling and methods, while Amperesand owns all Amperesand-specific designs and the deliverables embodying them (the observed compromise: vesting limited to IP created as a result of / based on / incorporating / derived from the Confidential Information, with an express carve-out preserving the vendor's pre-existing IP, IP independently developed without reference to the CI, and improvements to its own pre-existing IP that do not incorporate or derive from the CI).",
+        "Deferring deliverables ownership/license to the definitive agreement, with the NDA preserving Amperesand's interim ownership of work product created from its CI."
+      ]
+    },
+    {
+      "clause_type": "no_warranty",
+      "title": "No warranty / no obligation to proceed",
+      "standard_position": "CI is provided as-is; Amperesand makes no representation or warranty as to accuracy, completeness or fitness, and bears no liability for the vendor's use of or reliance on it. Amperesand is under no obligation to supply any particular CI or to enter into any transaction; no partnership, joint venture or agency is created; either Party may terminate discussions at any time (template Clause 6).",
+      "risk_weight": 2,
+      "presence": "optional",
+      "walk_away_triggers": [
+        "Any affirmative warranty extracted from Amperesand as to accuracy, completeness, non-infringement, fitness or performance of its disclosed designs/drawings — refuse.",
+        "A no-warranty clause coupled with an indemnity by Amperesand for the vendor's use of/reliance on the information — refuse (indemnity in an NDA is dealbreaker-class).",
+        "A consequential/indirect damages waiver or liability cap that limits Amperesand's recovery when the vendor misuses or improperly discloses Amperesand's CI — resist; if unavoidable, carve out confidentiality breaches and IP misappropriation."
+      ],
+      "acceptable_fallbacks": [
+        "Mutual as-is/no-reliance disclaimer (harmless to Amperesand as sole discloser).",
+        "Express statement that nothing obliges either Party to enter a definitive agreement (template Clause 6, already present)."
+      ]
+    },
+    {
+      "clause_type": "remedies_injunctive_relief",
+      "title": "Remedies and injunctive relief",
+      "standard_position": "Each Party acknowledges that monetary damages alone may be insufficient for a breach, and Amperesand (the Disclosing Party) is entitled to seek specific performance or injunctive relief from any court in any jurisdiction, in addition to all other remedies available (template Clause 12). No bond requirement and no cap on monetary damages.",
+      "risk_weight": 4,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Vendor extracts a pre-emptive waiver of Amperesand's right to seek injunctive/equitable relief, or a requirement that Amperesand post a bond / a nominal bond cap.",
+        "Prevailing-party attorneys'-fee shifting bolted onto remedies that asymmetrically deters Amperesand from enforcing.",
+        "Injunctive relief narrowed to IP-infringement only, excluding ordinary confidentiality breaches.",
+        "Indemnification or uncapped damages liability bundled into the remedies clause."
+      ],
+      "acceptable_fallbacks": [
+        "Mutual injunctive-relief acknowledgment (harmless; Amperesand is the party most likely to enforce).",
+        "Express 'without posting bond or proving actual damages' language strengthening the remedy."
+      ]
+    },
+    {
+      "clause_type": "governing_law_jurisdiction",
+      "title": "Governing law and dispute resolution",
+      "standard_position": "Governed by the laws of Singapore. Disputes referred to arbitration administered by the Singapore International Arbitration Centre (SIAC) under its prevailing rules, seat in Singapore, single arbitrator, in English (template Clause 16), with the Clause 12 court carve-out for specific performance / injunctive relief.",
+      "risk_weight": 3,
+      "presence": "required",
+      "walk_away_triggers": [
+        "Substitution of a foreign governing law and foreign-seat litigation/arbitration giving the vendor home-court advantage (e.g., PRC law + CIETAC/local court for a China-based manufacturer; Indian law + Indian courts for an India-based vendor) — refuse or escalate.",
+        "Governing law specified but NO forum/dispute mechanism, or no governing law at all — insert SIAC Singapore.",
+        "Internally contradictory forum clause naming two incompatible institutions/seats (void-clause risk) — fix before signing.",
+        "Court litigation in the vendor's home courts with prevailing-party fee-shifting — strips confidentiality/neutrality and adds asymmetric cost."
+      ],
+      "acceptable_fallbacks": [
+        "Retaining SIAC/Singapore/single arbitrator/English (template-standard; executed deals kept it verbatim, including China-based vendors).",
+        "Neutral third-seat arbitration (e.g., SIAC or ICC seated Singapore) if the vendor resists Singapore-law substantive governance but accepts a neutral seat."
+      ]
+    },
+    {
+      "clause_type": "assignment",
+      "title": "Assignment",
+      "standard_position": "Neither Party may assign or delegate without the other's prior written consent, except that Amperesand (the Disclosing Party) may (i) assign to an acquirer of substantially all its assets by operation of law and (ii) assign to any Affiliate of Amperesand. Purported assignment in violation is null and void; assignment does not relieve the assignor of its obligations; no third-party beneficiaries (template Clause 15).",
+      "risk_weight": 3,
+      "presence": "optional",
+      "walk_away_triggers": [
+        "Vendor granted a reciprocal free right to assign to its affiliates/subsidiaries or on M&A without Amperesand consent — the asymmetry should run in Amperesand's favor, not the vendor's.",
+        "Agreement made freely binding on 'successors and assigns' with no consent/notice, letting the vendor transfer access to Amperesand's designs to an unknown acquirer (e.g., a competitor acquiring the manufacturer).",
+        "No assignment clause at all, leaving assignment to permissive local-law defaults."
+      ],
+      "acceptable_fallbacks": [
+        "Mutual consent-based assignment with the carve-outs running only to Amperesand (template-standard).",
+        "Vendor change-of-control assignment permitted with prior written notice to Amperesand and a right for Amperesand to terminate if the acquirer is an Amperesand competitor."
+      ]
+    },
+    {
+      "clause_type": "notices_misc",
+      "title": "Notices and miscellaneous boilerplate",
+      "standard_position": "Notices effective on delivery by hand, email, or certified/registered mail to the specified addresses (template Clause 9). Clean boilerplate: waiver (Clause 11), severability (Clause 13), entire agreement/merger and written-signed amendments (Clause 14), counterparts and PDF/e-signature execution recognized under the Electronic Transactions Act 2010 of Singapore (Clause 17). No prevailing-party fee-shifting, no extra regulatory/compliance obligations.",
+      "risk_weight": 2,
+      "presence": "optional",
+      "walk_away_triggers": [
+        "Attorneys'-fee / prevailing-party fee-shifting clause inserted (not in Amperesand's template) — resist or strike.",
+        "Incomplete or blank notice details (placeholder name/title/email/Attn) left in the executed agreement, undermining valid service — never sign with placeholder notice fields.",
+        "US-litigation-specific boilerplate (e.g., jury-trial waiver) inserted into a Singapore-governed agreement where it is inapplicable — strike.",
+        "A 'Contracts (Rights of Third Parties)' provision drafted to CONFER enforcement rights on third parties — keep it as an EXCLUSION of third-party rights, not a grant."
+      ],
+      "acceptable_fallbacks": [
+        "Adding a Contracts (Rights of Third Parties) Act exclusion clause (as observed in an executed deal — 'a person who is not a party has no right to enforce any term') — Amperesand-neutral/favorable.",
+        "Updating notice addressees/emails to current Amperesand contacts."
+      ]
+    },
+    {
+      "clause_type": "entire_agreement_amendments",
+      "title": "Entire agreement and amendments",
+      "standard_position": "The Agreement is the final, complete and exclusive agreement on its subject matter, superseding and merging all prior discussions; no modification or amendment is effective unless in writing and signed by authorized representatives of both Parties (template Clause 14).",
+      "risk_weight": 2,
+      "presence": "optional",
+      "walk_away_triggers": [
+        "Carve-out letting the vendor's standard terms, prior correspondence or a purchase-order's terms override the NDA.",
+        "Oral or unilateral amendment permitted, weakening the written-and-signed requirement.",
+        "An integration clause drafted to supersede or subordinate a future definitive services agreement, or to merge away Amperesand's separately negotiated IP/work-product terms."
+      ],
+      "acceptable_fallbacks": [
+        "Standard merger + written-amendment clause (template-standard, verbatim across executed deals).",
+        "A carve-out clarifying that the NDA does not supersede any concurrent or future definitive services agreement between the parties (preferred where an engagement is contemplated)."
+      ]
+    },
+    {
+      "clause_type": "personal_data_privacy",
+      "title": "Personal data / PDPA handling (service-provider processing)",
+      "standard_position": "Shared personal data is swept into the CI definition (template Clause 1(e)). Where the service provider will process Amperesand or third-party personal data in performing the evaluation/engagement, add a PDPA-aligned position: process only for the Purpose, apply reasonable security arrangements, no onward transfer/sub-processing without consent, notify Amperesand of any data breach, and return/delete personal data on request or termination.",
+      "risk_weight": 3,
+      "presence": "optional",
+      "walk_away_triggers": [
+        "Vendor seeks rights to use shared personal data for its own purposes, marketing, model-training, or onward transfer outside Singapore without PDPA-compliant safeguards.",
+        "No breach-notification obligation on the vendor for personal-data incidents.",
+        "Vendor disclaims PDPA data-intermediary/processor responsibilities while still receiving personal data."
+      ],
+      "acceptable_fallbacks": [
+        "Relying on the CI obligations to cover personal data where no material personal data is exchanged (the template's default).",
+        "A short PDPA processing addendum scoped to the specific personal data shared, with security, sub-processing-consent, breach-notice and deletion terms."
+      ]
+    },
+    {
+      "clause_type": "non_solicitation",
+      "title": "Non-solicitation (prohibited in NDA)",
+      "standard_position": "Amperesand's SG_SP uNDA template contains NO non-solicitation covenant; an NDA is a confidentiality instrument, not a trade-restraint vehicle. An inserted non-solicit is treated as a prohibited, high-severity clause.",
+      "risk_weight": 5,
+      "presence": "prohibited",
+      "walk_away_triggers": [
+        "Any standalone non-solicitation covenant (employees, customers or suppliers) untethered from use of CI.",
+        "Non-solicit binding only Amperesand, or with no fixed term / perpetual restraint, or exceeding 12 months.",
+        "Liquidated-damages or indemnity tied to a non-solicit breach."
+      ],
+      "acceptable_fallbacks": [
+        "If genuinely required on a relationship, a narrow, mutual, use-tethered non-solicit of directly-involved personnel, capped at 12 months, with a general-advertising / non-targeted-recruiting carve-out — documented as a concession, not Amperesand-standard."
+      ]
+    },
+    {
+      "clause_type": "non_competition",
+      "title": "Non-competition (prohibited in NDA)",
+      "standard_position": "Amperesand's SG_SP uNDA template contains NO non-competition clause; the preferred position is no non-compete, no non-compete-taint/contamination restriction, and no non-compete waiver in either direction.",
+      "risk_weight": 5,
+      "presence": "prohibited",
+      "walk_away_triggers": [
+        "Any non-compete or 'taint'/personnel-segregation restriction imposed on Amperesand barring Amperesand personnel exposed to vendor information from working on competing technology — a de facto non-compete on Amperesand's engineering teams.",
+        "Vendor exclusivity demand barring Amperesand from engaging other suppliers for the same parts during/after evaluation.",
+        "Any actual restraint on Amperesand competing, embedded in the NDA."
+      ],
+      "acceptable_fallbacks": [
+        "None as Amperesand-standard. Any exclusivity belongs in the definitive supply/services agreement, not the NDA."
+      ]
+    },
+    {
+      "clause_type": "indemnification",
+      "title": "Indemnification (prohibited in NDA)",
+      "standard_position": "Amperesand's SG_SP uNDA template contains NO indemnification, hold-harmless or fee-shifting provision; confidentiality breaches are remedied through general-law damages and equitable relief (Clause 12). The preferred position is to strike any indemnity or attorneys'-fees clause entirely.",
+      "risk_weight": 5,
+      "presence": "prohibited",
+      "walk_away_triggers": [
+        "Any indemnity running against Amperesand (especially uncapped, or on a solicitor-client/indemnity-basis costs standard).",
+        "Indemnity/liability extending to 'attempted or threatened' disclosure and to a broad list of the vendor's affiliates/agents/officers/directors as indemnitees.",
+        "Any non-mutual fee-shifting or indemnity running only in the vendor's favor."
+      ],
+      "acceptable_fallbacks": [
+        "If unavoidable, a mutual, capped indemnity limited to confidentiality breaches, excluding indirect/consequential loss — documented as a concession, not Amperesand-standard."
+      ]
+    }
+  ]
+}

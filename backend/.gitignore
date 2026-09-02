@@ -1,0 +1,7 @@
+# Local persistence artifacts. Importing app.db builds a SQLite engine at
+# DATABASE_URL (default sqlite:///./data/app.db), creating ./data on first import.
+# Documents + the dev SQLite file live here; never commit them.
+data/
+*.db
+*.sqlite
+*.sqlite3

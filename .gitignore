@@ -1,0 +1,37 @@
+# Secrets — real values live in backend/.env locally, Key Vault in Azure.
+# backend/.env.example is the committed template.
+.env
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node / build output
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Logs
+*.log
+
+# Word lock files
+~$*
+
+# macOS
+.DS_Store
+
+# Claude Code local state (contains the nested worktree copy of this project)
+.claude/
+
+# Local persistence artifacts (mirrors backend/.gitignore; runtime creates ./data)
+data/
+*.db
+*.sqlite
+*.sqlite3

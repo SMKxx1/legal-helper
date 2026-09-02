@@ -1,0 +1,39 @@
+{% extends "admin/base.html" %}
+{% block title %}Capabilities{% endblock %}
+{% block content %}
+<section class="adm-page">
+  <div class="adm-page-head">
+    <h1 class="adm-h1">Admin console</h1>
+    <p class="adm-lede">Manage NDA templates, tokens and intake forms. Integration health is summarised below.</p>
+  </div>
+
+  <h2 class="adm-h2">Areas</h2>
+  <div class="adm-cards">
+    <a class="adm-area-card" href="/admin/templates">
+      <span class="adm-area-title">Templates</span>
+      <span class="adm-area-desc">Upload NDA .docx templates, tokenise them in the studio, test-drive and publish.</span>
+    </a>
+    <span class="adm-area-card adm-area-card-disabled" aria-disabled="true">
+      <span class="adm-area-title">Tokens</span>
+      <span class="adm-area-desc">The token registry (labels, help, data types). Coming soon.</span>
+    </span>
+    <a class="adm-area-card" href="/admin/forms">
+      <span class="adm-area-title">Forms</span>
+      <span class="adm-area-desc">Build and publish intake forms bound to NDA tokens.</span>
+    </a>
+  </div>
+
+  <h2 class="adm-h2">Integration health</h2>
+  <div class="adm-caps">
+    {% for cap in capabilities %}
+    <div class="adm-cap adm-cap-{{ cap.state }}">
+      <span class="adm-cap-dot" aria-hidden="true"></span>
+      <span class="adm-cap-name">{{ cap.name }}</span>
+      <span class="adm-cap-state">{{ cap.state }}</span>
+      <span class="adm-cap-summary">{{ cap.summary }}</span>
+      {% if cap.critical %}<span class="adm-cap-critical" title="Critical for liveness">critical</span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- CSRF token for state-changing admin fetches. Populated by page routes that pass `csrf_token`;
+       absent (default '') is fine — admin.js falls back to the readable `csrf` cookie. -->
+  <meta name="csrf-token" content="{{ csrf_token|default('') }}">
+  <title>{% block title %}Admin{% endblock %} · NDA Assistant</title>
+  <!-- Static assets ONLY: the admin CSP forbids inline script/style. The shell links each area's
+       stylesheet (shell is authoritative for the shared chrome), then the page adds its own via
+       head_css. -->
+  <link rel="stylesheet" href="/admin/static/tokens/tokens.css">
+  <link rel="stylesheet" href="/admin/static/shell/admin.css">
+  {% block head_css %}{% endblock %}
+  <script src="/admin/static/shell/admin.js" defer></script>
+  {% block head_js %}{% endblock %}
+</head>
+<body class="adm">
+  <header class="adm-top">
+    <div class="adm-brand">
+      <a href="/admin/" class="adm-brand-name">NDA&nbsp;Assistant</a>
+      <span class="adm-brand-sub">admin</span>
+    </div>
+    <nav class="adm-nav" aria-label="Admin sections">
+      <a href="/admin/templates" data-nav="templates"
+         class="adm-nav-item {{ 'is-active' if active_nav == 'templates' }}">Templates</a>
+      <a href="/admin/tokens" data-nav="tokens"
+         class="adm-nav-item {{ 'is-active' if active_nav == 'tokens' }}">Tokens</a>
+      <a href="/admin/access" data-nav="access"
+         class="adm-nav-item {{ 'is-active' if active_nav == 'access' }}">Access</a>
+      <a href="/admin/" data-nav="home"
+         class="adm-nav-item {{ 'is-active' if active_nav == 'home' }}">Capabilities</a>
+    </nav>
+    <div class="adm-user">
+      {% if user_id %}<span class="adm-user-id" title="Signed in">{{ user_id }}</span>{% endif %}
+      <button type="button" id="adm-logout" class="adm-btn adm-btn-ghost">Sign out</button>
+    </div>
+  </header>
+  <main class="adm-main">
+    {% block content %}{% endblock %}
+  </main>
+  {% block page_js %}{% endblock %}
+</body>
+</html>

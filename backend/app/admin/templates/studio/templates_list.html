@@ -1,0 +1,118 @@
+{% extends "admin/base.html" %}
+{% block title %}Templates{% endblock %}
+{% block head_css %}<link rel="stylesheet" href="/admin/static/studio/studio.css">{% endblock %}
+{% block content %}
+<section class="adm-page">
+  <div class="adm-page-head">
+    <div class="adm-page-head-row">
+      <h1 class="adm-h1">Templates</h1>
+      <button type="button" id="tpl-bulk-open" class="adm-btn adm-btn-primary">Bulk upload</button>
+    </div>
+    <p class="adm-lede">Eight NDA templates, each with an <strong>empty</strong> and a
+      <strong>tokenised</strong> variant. Upload a .docx to start a draft, tokenise it in the studio,
+      then publish. Roll back to any prior version in one click.</p>
+  </div>
+
+  <div id="tpl-bulk-modal" class="tpl-bulk-overlay" hidden>
+    <div class="tpl-bulk-box" role="dialog" aria-modal="true" aria-labelledby="tpl-bulk-title">
+      <div class="tpl-bulk-box-head">
+        <h2 id="tpl-bulk-title" class="adm-h2">Bulk upload templates</h2>
+        <button type="button" id="tpl-bulk-close" class="adm-btn adm-btn-ghost" aria-label="Close">&#10005;</button>
+      </div>
+      <p class="adm-muted">Upload several <strong>.docx</strong> files at once. Name each file by its
+        template combo so it lands in the right slot:</p>
+      <p class="tpl-bulk-convention"><code>&lt;SG|US&gt;_&lt;Company|ServiceProvider|Individual&gt;[_&lt;Mutual|Unilateral&gt;].docx</code></p>
+      <ul class="tpl-bulk-examples">
+        <li><code>SG_Company.docx</code></li>
+        <li><code>US_Individual_Mutual.docx</code></li>
+        <li><code>SG_ServiceProvider.docx</code></li>
+      </ul>
+      <p class="adm-muted">Mutuality applies to <strong>Individual</strong> only. Choose whether these
+        are <strong>empty</strong> or <strong>tokenised</strong> templates with the selector below — it
+        applies to every file in the batch. Not sure which token goes where?
+        <a href="/admin/templates/token-reference.pdf" class="tpl-bulk-pdf">Download the token
+        reference (PDF)</a>.</p>
+      <form id="tpl-bulk-form">
+        <label class="tpl-bulk-variant-label" for="tpl-bulk-variant">Upload these as</label>
+        <select id="tpl-bulk-variant" class="adm-select tpl-bulk-variant">
+          <option value="empty" selected>Empty templates (raw)</option>
+          <option value="tokenised">Tokenised templates</option>
+        </select>
+        <input type="file" id="tpl-bulk-files" class="tpl-bulk-files" accept=".docx" multiple required
+               aria-label="Choose .docx template files">
+        <button type="submit" class="adm-btn adm-btn-primary">Upload all</button>
+        <span id="tpl-bulk-msg" class="adm-muted" role="status"></span>
+      </form>
+      <ul id="tpl-bulk-results" class="tpl-bulk-results"></ul>
+    </div>
+  </div>
+
+  {% for t in templates %}
+  <div class="adm-card tpl-card">
+    <div class="tpl-card-head">
+      <h2 class="tpl-name">{{ t.name or (t.jurisdiction_code ~ ' ' ~ t.counterparty_type_code) }}</h2>
+      <span class="adm-muted">{{ t.jurisdiction_code }} · {{ t.counterparty_type_code }} · {{ t.mutuality_code }}</span>
+    </div>
+    <div class="adm-table-scroll">
+      <table class="adm-table">
+        <thead>
+          <tr><th>Variant</th><th>Current</th><th>Version history</th><th>Upload new .docx</th></tr>
+        </thead>
+        <tbody>
+        {% for v in t.variants %}
+          <tr>
+            <td class="adm-nowrap"><strong>{{ v.variant }}</strong></td>
+            <td class="adm-nowrap">
+              {% if v.current and v.current.has_blob %}
+                v{{ v.current.version_no }} <span class="adm-muted">· {{ v.current.token_count }} token{{ 's' if v.current.token_count != 1 }}</span>
+              {% elif v.current %}
+                <span class="adm-badge adm-badge-draft">no file</span>
+              {% else %}
+                <span class="adm-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              <ul class="tpl-versions">
+                {% for ver in v.versions %}
+                <li class="tpl-ver">
+                  <span class="adm-nowrap">v{{ ver.version_no }}</span>
+                  {% if ver.is_current %}<span class="adm-badge adm-badge-current">current</span>
+                  {% elif ver.has_blob %}<span class="adm-badge adm-badge-draft">draft</span>{% endif %}
+                  <span class="adm-muted adm-nowrap">{{ ver.created_at }}</span>
+                  <span class="adm-muted adm-nowrap">by {{ ver.created_by or '—' }}</span>
+                  {% if ver.has_blob %}
+                    <span class="adm-muted adm-nowrap">{{ ver.token_count }} tok</span>
+                    <a class="adm-btn adm-btn-sm" href="/admin/studio/{{ ver.id }}">Open studio</a>
+                    {% if not ver.is_current %}
+                      <button type="button" class="adm-btn adm-btn-sm tpl-rollback"
+                              data-version-id="{{ ver.id }}">Make current</button>
+                    {% endif %}
+                  {% else %}
+                    <span class="adm-muted">no file</span>
+                  {% endif %}
+                </li>
+                {% endfor %}
+              </ul>
+            </td>
+            <td>
+              <form class="tpl-upload" data-template-id="{{ t.id }}" data-variant="{{ v.variant }}">
+                <input type="file" class="tpl-file" accept=".docx"
+                       aria-label="Upload .docx for {{ t.name }} {{ v.variant }}" required>
+                <button type="submit" class="adm-btn adm-btn-sm">Upload</button>
+                <span class="tpl-upload-msg adm-error" role="alert" hidden></span>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endfor %}
+
+  {% if not templates %}
+  <div class="adm-card"><p class="adm-muted">No templates are seeded in this environment.</p></div>
+  {% endif %}
+</section>
+{% endblock %}
+{% block page_js %}<script src="/admin/static/studio/templates.js" defer></script>{% endblock %}

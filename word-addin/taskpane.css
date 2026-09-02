@@ -1,0 +1,977 @@
+/* Amperesand NDA Review — task-pane theme.
+ * Implements the "NDA Review Add-in" design comp: ink/gold/cream palette,
+ * Space Grotesk (display/numerics) + Hanken Grotesk (text). Severity tints are
+ * precomputed static hex (no color-mix) for Word webview compatibility. */
+:root {
+  --ink: #102027; /* brand ink / nav */
+  --ink-2: #0c1218; /* deep */
+  --ink-3: #0b161c; /* logo well */
+  --gold: #b7965d; /* accent */
+  --gold-hover: #c9a96e;
+  --gold-dark: #6b5a36;
+  --line: #e3ddd3; /* warm hairline */
+  --line-2: #d8cfbf; /* stronger hairline / inputs */
+  --muted: #6a6a6a;
+  --subtle: #8da0a6; /* on-ink subtitle */
+  --cream: #faf7f1; /* suggested-language well */
+  --suggest-line: #e7dcc6;
+  --track: #efeae2; /* progress track */
+  --red: #c23b27;
+  --amber: #c8801e;
+  --green: #2e8b5b; /* solid badges + card stripes (brand) */
+  --red-text: #b5331f;
+  --amber-text: #8a5a16;
+  --green-text: #1f7a4d; /* AA-safe (>=4.5:1) on light tints */
+  --gold-text: #8a6d33; /* AA-safe gold for small text on white */
+}
+/* Brand-preserving a11y pass: the gold "Review" CTA (white-on-#b7965d) and the
+ * solid RED/AMBER/GREEN badges are kept exactly as the design comp specifies and
+ * sit below WCAG AA by brand choice. Only small severity/score text uses the
+ * darker *-text tokens above so it clears 4.5:1 without altering the look. */
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+}
+body {
+  font-family:
+    "Hanken Grotesk",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  color: var(--ink);
+  background: #fff;
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+.display {
+  font-family: "Space Grotesk", "Hanken Grotesk", system-ui, sans-serif;
+}
+.hidden {
+  display: none !important;
+}
+
+/* ---- brand header ---- */
+.brand {
+  background: var(--ink);
+  color: #fff;
+  padding: 13px 16px;
+  border-bottom: 2px solid var(--gold);
+}
+.brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.brand-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.brand-mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  flex: none;
+  background: var(--ink-3);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--gold);
+}
+.brand-name {
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+.brand-sub {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--subtle);
+  margin-top: 1px;
+}
+.icon-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--subtle);
+  padding: 2px;
+  border-radius: 4px;
+}
+.icon-btn:hover {
+  color: #fff;
+}
+.icon-btn:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+  color: #fff;
+}
+
+/* ---- content ---- */
+.content {
+  padding: 10px 16px 18px;
+}
+
+/* ---- settings panel ---- */
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff;
+  margin: 10px 0;
+}
+.field {
+  display: block;
+  margin: 0 0 10px;
+}
+.field:last-of-type {
+  margin-bottom: 12px;
+}
+.field-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+input[type="text"],
+input[type="password"] {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  background: #fff;
+}
+input:focus-visible {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(183, 150, 93, 0.35);
+}
+
+/* ---- buttons ---- */
+button {
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  border-radius: 4px;
+  border: 1px solid var(--line-2);
+  background: #fff;
+  padding: 8px 12px;
+  color: var(--ink);
+}
+button:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+.btn-gold {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #fff;
+  width: 100%;
+  font-weight: 700;
+  padding: 11px 14px;
+  letter-spacing: 0.01em;
+}
+.btn-gold:hover:not(:disabled) {
+  background: var(--gold-hover);
+  border-color: var(--gold-hover);
+}
+.btn-primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+  width: 100%;
+  font-weight: 600;
+  padding: 11px 14px;
+  letter-spacing: 0.01em;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--ink-2);
+}
+.btn-gold:disabled,
+.btn-primary:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.btn-secondary {
+  background: #fff;
+  border: 1px solid var(--line-2);
+  font-weight: 600;
+}
+.btn-secondary:hover {
+  background: var(--cream);
+}
+
+.status {
+  color: var(--muted);
+  min-height: 16px;
+  margin: 9px 0 0;
+  font-size: 12px;
+}
+.status.error {
+  color: var(--red);
+}
+#actions {
+  margin: 12px 0;
+}
+
+/* ---- review-depth toggle (pre-review) ---- */
+.depth-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin: 8px 0 10px;
+}
+.depth-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.1;
+}
+.depth-cap {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+.switch {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  flex: none;
+  border: none;
+  border-radius: 999px;
+  padding: 0;
+  cursor: pointer;
+  background: var(--line-2);
+  transition: background 0.18s ease;
+}
+.switch.is-on {
+  background: var(--ink);
+}
+.switch:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  display: block;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+  transition: transform 0.18s ease;
+}
+.switch.is-on .switch-knob {
+  transform: translateX(18px);
+}
+.switch:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* ---- post-review run controls (re-run / cached-view toggle) ---- */
+.runctl {
+  margin: 12px 0;
+}
+.runctl-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.runctl-meta {
+  font-size: 11px;
+  color: var(--muted);
+}
+.rerun-btn {
+  border: 1px solid var(--ink);
+  background: #fff;
+  color: var(--ink);
+  border-radius: 4px;
+  padding: 6px 13px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.rerun-btn:hover:not(:disabled) {
+  background: var(--cream);
+}
+.seg-toggle {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+}
+.seg-btn {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 15px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+}
+.seg-btn.is-on {
+  background: var(--ink);
+  color: #fff;
+}
+.seg-btn:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+
+/* ---- summary score panel ---- */
+.summary {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #fff;
+  margin: 12px 0;
+}
+.summary-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.summary-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.score {
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
+  margin-top: 5px;
+}
+.score .num {
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 1;
+  color: var(--ink);
+}
+.score .pct {
+  font-weight: 600;
+  font-size: 17px;
+  color: var(--gold-text);
+}
+.rag {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+}
+.rag-pill {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 999px;
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-size: 12px;
+}
+.rag-pill.red {
+  background: var(--red);
+}
+.rag-pill.yellow {
+  background: var(--amber);
+}
+.rag-pill.green {
+  background: var(--green);
+}
+.rag-label {
+  font-size: 11px;
+  color: var(--muted);
+}
+.bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--track);
+  margin: 13px 0 11px;
+  overflow: hidden;
+}
+.bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #d9c6a3 0%, #bf9f68 60%, #a07f4a 100%);
+}
+.summary-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--muted);
+  flex-wrap: wrap;
+}
+.counts {
+  display: flex;
+  gap: 9px;
+  margin-left: auto;
+}
+.counts .c-high {
+  color: var(--red-text);
+  font-weight: 600;
+}
+.counts .c-med {
+  color: var(--amber-text);
+  font-weight: 600;
+}
+.counts .c-low {
+  color: var(--green-text);
+  font-weight: 600;
+}
+
+/* ---- section headers ---- */
+.section-h {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  margin: 16px 0 8px;
+}
+
+/* ---- finding cards (expandable) ---- */
+.finding {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--line);
+  border-radius: 6px;
+  margin-bottom: 10px;
+  background: #fff;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+}
+.finding.high {
+  border-left-color: var(--red);
+}
+.finding.medium {
+  border-left-color: var(--amber);
+}
+.finding.low {
+  border-left-color: var(--green);
+}
+.finding:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 9px rgba(16, 32, 39, 0.06);
+}
+.finding-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 12px 13px;
+  border-radius: 6px;
+}
+.finding-head:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: -2px;
+}
+.finding-head[aria-expanded="true"] {
+  padding-bottom: 8px;
+}
+.finding-title {
+  font-family: "Space Grotesk", "Hanken Grotesk", sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ink);
+  flex: 1;
+  line-height: 1.25;
+  min-width: 0;
+}
+.sev-pill {
+  display: inline-block;
+  flex: none;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: 1px solid transparent;
+}
+.sev-pill.high {
+  color: var(--red-text);
+  background: #f7e6e3;
+  border-color: #efccc7;
+}
+.sev-pill.medium {
+  color: var(--amber-text);
+  background: #f8eee2;
+  border-color: #f1dec5;
+}
+.sev-pill.low {
+  color: var(--green-text);
+  background: #e4f0ea;
+  border-color: #c9e1d4;
+}
+.chev {
+  flex: none;
+  color: var(--line-2);
+  font-size: 12px;
+  line-height: 1;
+  transition: transform 0.16s ease;
+}
+.finding-head[aria-expanded="true"] .chev {
+  transform: rotate(90deg);
+  color: var(--muted);
+}
+.finding-body {
+  padding: 0 13px 12px;
+}
+.rationale {
+  color: var(--muted);
+  margin: 0 0 5px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+/* Inline redline preview — a word-level diff of the suggested change, rendered with the
+ * SAME token-LCS the apply path uses so the preview matches the tracked changes Apply
+ * produces. Deletions struck in pastel red, insertions in pastel green, unchanged plain. */
+.redline {
+  background: var(--cream);
+  border: 1px solid var(--suggest-line);
+  border-radius: 5px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 7px 0;
+  color: var(--ink);
+}
+.redline .rl-del {
+  background: #f6dcd6; /* pastel red */
+  color: #9c3322;
+  text-decoration: line-through;
+  border-radius: 3px;
+  padding: 0 1px;
+}
+.redline .rl-ins {
+  background: #d6ecdd; /* pastel green */
+  color: #1c6e44;
+  text-decoration: none;
+  border-radius: 3px;
+  padding: 0 1px;
+}
+.redline-cap {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 9px 0 -2px;
+}
+.redline-cap .swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  font-weight: 500;
+}
+.redline-cap .swatch i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+}
+.redline-cap .swatch .del {
+  background: #f6dcd6;
+}
+.redline-cap .swatch .ins {
+  background: #d6ecdd;
+}
+.apply-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.apply {
+  padding: 5px 11px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.apply-msg {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.apply-msg:empty {
+  display: none;
+}
+.apply-msg.error {
+  color: var(--red-text);
+}
+.applied {
+  display: inline-block;
+  color: var(--green-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.apply-msg.note {
+  color: var(--gold-text);
+}
+/* Neutral "Manual" tag in a finding header: a deliberate state (no verbatim anchor to redline),
+ * styled like the severity pills but in calm gold — NOT an error. */
+.tag-manual {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--gold-text);
+  background: #f3ecdd;
+  border: 1px solid #e7d9bd;
+}
+/* Advisory action: a finding we can't auto-redline is shown as guidance + a Copy button. */
+.advisory {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: #faf6ee;
+  border: 1px solid var(--suggest-line);
+  border-radius: 6px;
+}
+.advisory-note {
+  flex: 1;
+  min-width: 150px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.btn-ghost {
+  flex: none;
+  padding: 5px 11px;
+  font-size: 12px;
+  font-weight: 600;
+  background: none;
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-ghost:hover {
+  border-color: var(--gold);
+  color: var(--gold-dark);
+}
+.btn-ghost:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+.btn-ghost.copied {
+  color: var(--green-text);
+  border-color: #c9e1d4;
+  background: #e4f0ea;
+}
+
+/* ---- missing clauses / cross-clause ---- */
+.gaps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gap-card {
+  border-radius: 5px;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.gap-card.missing {
+  background: #fbedea;
+  border: 1px solid #f0d2cc;
+  color: #b5331f;
+}
+.gap-card.cross {
+  background: #fbf3e2;
+  border: 1px solid #eeddbc;
+  color: #8a5a16;
+}
+
+/* ---- footer / review-details popover ---- */
+footer {
+  margin-top: 16px;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+  display: flex;
+}
+.info-wrap {
+  position: relative;
+  display: flex;
+}
+.info-btn {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: none;
+  color: #7a6d4f;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.info-btn:hover {
+  color: var(--gold-dark);
+  border-color: var(--gold);
+}
+.info-pop {
+  position: absolute;
+  bottom: 26px;
+  left: 0;
+  width: 204px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 12px 30px rgba(6, 10, 18, 0.3);
+  padding: 11px 13px;
+  z-index: 30;
+}
+.info-h {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+  margin: 4px 0;
+  font-family: ui-monospace, monospace;
+}
+.info-row .k {
+  color: var(--muted);
+}
+.info-row .v {
+  color: var(--ink);
+}
+
+/* ---- mode switch (Review | Tokenize template) ---- */
+.mode-row {
+  margin: 10px 0 12px;
+}
+.mode-switch {
+  display: flex;
+  width: 100%;
+}
+.mode-switch .seg-btn {
+  flex: 1;
+  text-align: center;
+}
+
+/* ---- tokenize mode ---- */
+.tok-block {
+  margin: 0 0 18px;
+}
+.tok-h {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.15;
+  margin-bottom: 3px;
+}
+.tok-instr {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.45;
+  margin: 0 0 9px;
+}
+.tok-instr code {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  background: var(--cream);
+  border: 1px solid var(--suggest-line);
+  border-radius: 3px;
+  padding: 0 3px;
+}
+
+/* token palette — each token is a full-width button that inserts its {{placeholder}} */
+.tok-palette {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tok-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
+}
+.tok-chip:hover {
+  border-color: var(--gold);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 9px rgba(16, 32, 39, 0.06);
+}
+.tok-chip:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+.tok-chip-label {
+  font-family: "Space Grotesk", "Hanken Grotesk", sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink);
+  line-height: 1.2;
+}
+.tok-chip-help {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.tok-chip-ph {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--gold-text);
+  background: var(--cream);
+  border: 1px solid var(--suggest-line);
+  border-radius: 3px;
+  padding: 1px 5px;
+  margin-top: 1px;
+}
+.tok-empty {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 6px 0;
+}
+.tok-empty.error {
+  color: var(--red-text);
+}
+
+/* scan results — one row per distinct {{token}}, unknown ones flagged */
+.tok-scan {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tok-scan:empty {
+  display: none;
+}
+.tok-scan-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 9px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+.tok-scan-name {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.tok-scan-row .tok-tag {
+  margin-left: auto;
+  flex: none;
+  font-family: "Hanken Grotesk", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.tok-scan-row.known .tok-tag {
+  color: var(--green-text);
+  background: #e4f0ea;
+  border: 1px solid #c9e1d4;
+}
+.tok-scan-row.unknown {
+  border-color: #f0d2cc;
+  background: #fbedea;
+}
+.tok-scan-row.unknown .tok-tag {
+  color: var(--red-text);
+  background: #f7e6e3;
+  border: 1px solid #efccc7;
+}
+
+/* send-to-library form */
+.tok-form {
+  margin-bottom: 12px;
+}
+.tok-select {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  background: #fff;
+}
+.tok-select:focus-visible {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(183, 150, 93, 0.35);
+}

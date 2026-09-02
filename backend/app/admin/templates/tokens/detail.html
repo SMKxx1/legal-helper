@@ -1,0 +1,92 @@
+{% extends "admin/base.html" %}
+{% block title %}Token · {{ token.name }}{% endblock %}
+{% block content %}
+<p><a href="/admin/tokens">&larr; All tokens</a></p>
+<h1 class="adm-h1"><span class="tok-code">{{ token.name }}</span></h1>
+<p class="adm-muted">Placeholder <span class="tok-code">{{ token.placeholder }}</span> · scope <span class="tok-code">{{ token.scope_code }}</span></p>
+
+<div class="adm-card">
+  <h2 class="adm-h2">Metadata</h2>
+  <form id="tok-edit-form" data-token-id="{{ token.id }}">
+    <div class="adm-field">
+      <label class="adm-label" for="tok-e-label">Label</label>
+      <input class="adm-input" id="tok-e-label" name="label" type="text" value="{{ token.label }}">
+    </div>
+    <div class="adm-field">
+      <label class="adm-label" for="tok-e-help">Help text</label>
+      <input class="adm-input" id="tok-e-help" name="help_text" type="text" value="{{ token.help_text }}">
+    </div>
+    <div class="adm-field">
+      <label class="adm-label" for="tok-e-type">Data type</label>
+      <select class="adm-select" id="tok-e-type" name="data_type">
+        {% for dt in data_types %}<option value="{{ dt }}" {% if dt == token.data_type %}selected{% endif %}>{{ dt }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="adm-field">
+      <label class="adm-label" for="tok-e-party">Party</label>
+      <select class="adm-select" id="tok-e-party" name="party">
+        {% for p in parties %}<option value="{{ p }}" {% if p == token.party %}selected{% endif %}>{{ p }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="adm-field">
+      <label class="adm-label" for="tok-e-fallback">Fallback text</label>
+      <input class="adm-input" id="tok-e-fallback" name="fallback_text" type="text" value="{{ token.fallback_text }}">
+    </div>
+    <button class="adm-btn adm-btn-primary" type="submit">Save</button>
+    <span id="tok-edit-msg"></span>
+  </form>
+</div>
+
+<div class="adm-card">
+  <h2 class="adm-h2">Usage</h2>
+  {% if usage.in_use %}
+    {% if usage.template_versions %}
+    <h3>Template versions</h3>
+    <table class="adm-table">
+      <thead><tr><th>Template</th><th>Variant</th><th>Version</th><th>Current</th></tr></thead>
+      <tbody>
+        {% for tv in usage.template_versions %}
+        <tr><td>{{ tv.template_name or tv.template_id }}</td><td>{{ tv.variant_code }}</td><td>{{ tv.version_no }}</td><td>{{ 'yes' if tv.is_current else 'no' }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+    {% if usage.form_bindings %}
+    <h3>Bound form fields</h3>
+    <table class="adm-table">
+      <thead><tr><th>Form</th><th>Kind</th><th>Fields</th><th>Where</th></tr></thead>
+      <tbody>
+        {% for fb in usage.form_bindings %}
+        <tr>
+          <td><a href="/admin/forms/{{ fb.form_id }}/edit">{{ fb.form_name or fb.form_id }}</a></td>
+          <td>{{ fb.kind }}</td>
+          <td>{{ fb.block_ids | length }}</td>
+          <td>{% if fb.in_draft %}draft{% endif %}{% if fb.in_draft and fb.in_published %}, {% endif %}{% if fb.in_published %}published{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  {% else %}
+    <p class="tok-usage-empty">This token is not used by any template version or form field.</p>
+  {% endif %}
+</div>
+
+<div class="tok-danger-zone">
+  <h2 class="adm-h2">Delete token</h2>
+  {% if usage.in_use %}
+  <p class="adm-error">This token is in use. Deleting it will drift every form and template above.</p>
+  <div class="adm-field tok-confirm">
+    <label class="adm-label" for="tok-confirm-input">Type <span class="tok-code">{{ token.name }}</span> to confirm force-delete</label>
+    <input class="adm-input" id="tok-confirm-input" type="text" placeholder="{{ token.name }}">
+  </div>
+  {% else %}
+  <p class="adm-muted">This token is unused and can be deleted safely.</p>
+  {% endif %}
+  <button class="adm-btn adm-btn-danger" id="tok-delete"
+          data-token-id="{{ token.id }}" data-token-name="{{ token.name }}"
+          data-in-use="{{ '1' if usage.in_use else '0' }}" type="button">Delete token</button>
+  <span id="tok-delete-msg"></span>
+</div>
+{% endblock %}
+{% block page_js %}<script src="/admin/static/tokens/tokens.js" defer></script>{% endblock %}

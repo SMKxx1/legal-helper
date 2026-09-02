@@ -1,0 +1,114 @@
+{
+  "schema": "amperesand-nda-playbooks/v4",
+  "generated": "2026-06-19",
+  "status": "draft-v4 \u2014 internal assistive; a human reviewer is the final authority. Transfer-derived (Individual) types are counsel-pending.",
+  "selection_axes": [
+    "jurisdiction",
+    "counterparty",
+    "mutuality"
+  ],
+  "selection_policy": "Route by the T0 router's detected (jurisdiction, counterparty, mutuality). On low router confidence or counterparty-owned paper, FAIL SAFE to the most protective playbook for the jurisdiction (the Company mutual variant) so scrutiny is never silently relaxed.",
+  "fail_safe_default": {
+    "SG": "SG_Company",
+    "US": "US_Company",
+    "unknown": "US_Company"
+  },
+  "playbooks": [
+    {
+      "variant_key": "US_Company",
+      "jurisdiction": "US",
+      "counterparty": "company",
+      "mutuality": "mutual",
+      "entity": "Amperesand Inc",
+      "playbook": "playbook/v4/US_Company.json",
+      "baseline": "playbook/v4/baselines/US_Company.md",
+      "canonical_template": "Amperesand Inc_mNDA_4.7_Company.docx",
+      "derivation": "corpus",
+      "confidence": "high"
+    },
+    {
+      "variant_key": "SG_Company",
+      "jurisdiction": "SG",
+      "counterparty": "company",
+      "mutuality": "mutual",
+      "entity": "Amperesand Pte Ltd",
+      "playbook": "playbook/v4/SG_Company.json",
+      "baseline": "playbook/v4/baselines/SG_Company.md",
+      "canonical_template": "Amperesand Pte Ltd_mNDA_4.7_Company.docx",
+      "derivation": "corpus",
+      "confidence": "high"
+    },
+    {
+      "variant_key": "US_Service_Provider",
+      "jurisdiction": "US",
+      "counterparty": "service_provider",
+      "mutuality": "unilateral",
+      "entity": "Amperesand Inc",
+      "playbook": "playbook/v4/US_Service_Provider.json",
+      "baseline": "playbook/v4/baselines/US_Service_Provider.md",
+      "canonical_template": "Amperesand Inc_uNDA_2.2_Service Provider.docx",
+      "derivation": "corpus",
+      "confidence": "high"
+    },
+    {
+      "variant_key": "SG_Service_Provider",
+      "jurisdiction": "SG",
+      "counterparty": "service_provider",
+      "mutuality": "unilateral",
+      "entity": "Amperesand Pte Ltd",
+      "playbook": "playbook/v4/SG_Service_Provider.json",
+      "baseline": "playbook/v4/baselines/SG_Service_Provider.md",
+      "canonical_template": "Amperesand Pte Ltd_uNDA_2.2_Service Provider.docx",
+      "derivation": "corpus",
+      "confidence": "high"
+    },
+    {
+      "variant_key": "US_Individual_Mutual",
+      "jurisdiction": "US",
+      "counterparty": "individual",
+      "mutuality": "mutual",
+      "entity": "Amperesand Inc",
+      "playbook": "playbook/v4/US_Individual_Mutual.json",
+      "baseline": "playbook/v4/baselines/US_Individual_Mutual.md",
+      "canonical_template": "Amperesand Inc_mNDA_4.7_Individual.docx",
+      "derivation": "transfer",
+      "confidence": "medium"
+    },
+    {
+      "variant_key": "SG_Individual_Mutual",
+      "jurisdiction": "SG",
+      "counterparty": "individual",
+      "mutuality": "mutual",
+      "entity": "Amperesand Pte Ltd",
+      "playbook": "playbook/v4/SG_Individual_Mutual.json",
+      "baseline": "playbook/v4/baselines/SG_Individual_Mutual.md",
+      "canonical_template": "Amperesand Pte Ltd_mNDA_4.7_Individual.docx",
+      "derivation": "transfer",
+      "confidence": "medium"
+    },
+    {
+      "variant_key": "US_Individual_Unilateral",
+      "jurisdiction": "US",
+      "counterparty": "individual",
+      "mutuality": "unilateral",
+      "entity": "Amperesand Inc",
+      "playbook": "playbook/v4/US_Individual_Unilateral.json",
+      "baseline": "playbook/v4/baselines/US_Individual_Unilateral.md",
+      "canonical_template": "Amperesand Inc_uNDA_3.3_Individual.docx",
+      "derivation": "transfer",
+      "confidence": "medium"
+    },
+    {
+      "variant_key": "SG_Individual_Unilateral",
+      "jurisdiction": "SG",
+      "counterparty": "individual",
+      "mutuality": "unilateral",
+      "entity": "Amperesand Pte Ltd",
+      "playbook": "playbook/v4/SG_Individual_Unilateral.json",
+      "baseline": "playbook/v4/baselines/SG_Individual_Unilateral.md",
+      "canonical_template": "Amperesand Pte Ltd_uNDA_3.3_Individual.docx",
+      "derivation": "transfer",
+      "confidence": "medium"
+    }
+  ]
+}
