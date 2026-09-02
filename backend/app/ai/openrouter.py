@@ -447,7 +447,14 @@ class OpenRouterAdapter:
         if reasons:
             detail += f" (moderation reasons: {reasons})"
         if resp.status_code == 429:
-            raise RateLimitedError(detail)
+            # OpenRouter's shared upstream pool 429s with "retry shortly"; when it says how long,
+            # the retry ladder waits exactly that rather than guessing at a backoff.
+            raw_hint = resp.headers.get("retry-after")
+            try:
+                hint = float(raw_hint) if raw_hint else None
+            except ValueError:  # HTTP-date form — fall back to the ladder's own backoff
+                hint = None
+            raise RateLimitedError(detail, retry_after=hint)
         if resp.status_code in (408,) or resp.status_code >= 500:
             raise RetryableProviderError(detail)
         if resp.status_code == 404:

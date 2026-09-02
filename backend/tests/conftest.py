@@ -130,3 +130,16 @@ def auth_headers(login):
     call ``login(username=..., password=...)`` directly instead of this fixture.
     """
     return {"Authorization": f"Bearer {login()}"}
+
+
+@pytest.fixture(autouse=True)
+def _no_real_backoff_sleeps(monkeypatch):
+    """The gateway's retry ladder waits between attempts (a 429 needs real time to clear).
+
+    That wait is correct in production and pure dead time in tests — it took the suite from ~4s to
+    ~28s. Tests that care about the delay assert on `_retry_delay_s` directly, or patch
+    `gateway.time.sleep` themselves (a later patch wins over this one).
+    """
+    from app.ai import gateway
+
+    monkeypatch.setattr(gateway.time, "sleep", lambda _s: None)

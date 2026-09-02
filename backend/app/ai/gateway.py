@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import threading
 import time
@@ -66,7 +67,34 @@ class InsufficientCreditsError(TerminalProviderError):
 
 
 class RateLimitedError(RetryableProviderError):
-    """OpenRouter answered 429 after the retry ladder was exhausted. Maps to ``rate_limited``."""
+    """OpenRouter answered 429 after the retry ladder was exhausted. Maps to ``rate_limited``.
+
+    ``retry_after`` carries the provider's own ``Retry-After`` hint in seconds when it sent one, so
+    the retry ladder can wait the amount actually asked for instead of guessing.
+    """
+
+    def __init__(self, *args: object, retry_after: float | None = None) -> None:
+        super().__init__(*args)
+        self.retry_after = retry_after
+
+
+#: Backoff between retries. The failure this exists for is OpenRouter's shared upstream pool
+#: answering 429 "temporarily rate-limited upstream, please retry shortly" — transient, but only if
+#: something actually waits. Kept short: a deep review is already slow, and three attempts spread
+#: over a few seconds is enough to ride out a brief queue without the user noticing a stall.
+_RETRY_BASE_S = 1.0
+_RETRY_MAX_S = 10.0
+
+
+def _retry_delay_s(attempt: int, exc: Exception) -> float:
+    """Seconds to wait before retry ``attempt`` (0-based): the provider's hint if it gave one,
+    otherwise exponential backoff with jitter so parallel agents don't retry in lockstep."""
+    hinted = getattr(exc, "retry_after", None)
+    if isinstance(hinted, int | float) and hinted > 0:
+        return min(float(hinted), _RETRY_MAX_S)
+    backoff = _RETRY_BASE_S * (2**attempt)
+    jitter = backoff * 0.25 * ((os.urandom(1)[0] / 255.0) * 2 - 1)  # +/-25%
+    return max(0.1, min(backoff + jitter, _RETRY_MAX_S))
 
 
 #: Exception type -> the stable error code the review pipeline surfaces to the client (plan §4.2:
@@ -453,6 +481,13 @@ class Gateway:
                         "breaker_trip", req.role, model=self.adapter.model_id
                     )
                     break
+                # WAIT before retrying. The dominant retryable failure here is a 429 from
+                # OpenRouter's shared upstream pool ("temporarily rate-limited upstream, please
+                # retry shortly"), and a rate limit is a window in TIME — retrying instantly, as
+                # this loop used to, cannot succeed. It burns all three attempts in a few
+                # milliseconds and pushes the circuit breaker toward tripping.
+                if _attempt < max_retries:
+                    time.sleep(_retry_delay_s(_attempt, e))
                 continue
             except TerminalProviderError as e:
                 self._breaker_record_response()  # the provider ANSWERED (auth/refusal/schema)
