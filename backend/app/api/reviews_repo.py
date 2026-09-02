@@ -204,10 +204,20 @@ def stale_job_cutoff(minutes: int = 15) -> datetime:
     return datetime.now(UTC) - timedelta(minutes=minutes)
 
 
-def fail_stale_jobs(db: DbSession, *, older_than_minutes: int = 15) -> int:
-    """Boot-time crash recovery (plan §3): any ``queued``/``running`` row older than
-    ``older_than_minutes`` means the process restarted mid-review — mark it failed rather than
-    leaving the add-in polling forever. Returns the number of rows updated."""
+def fail_stale_jobs(db: DbSession, *, older_than_minutes: int = 0) -> int:
+    """Boot-time crash recovery (plan §3): fail every orphaned review. Returns rows updated.
+
+    Deep reviews are owned by an in-process ``asyncio`` task, so at startup **every**
+    ``queued``/``running`` row is an orphan by definition — this process owns none of them, and
+    nothing will ever advance them again. Hence the default of 0: no age threshold.
+
+    It previously defaulted to 15 minutes, which sounds prudent and is exactly wrong here: a
+    review interrupted less than 15 minutes before a restart was skipped by the sweep and then sat
+    at ``queued`` forever while the add-in polled it. A deploy is the most likely moment for a
+    review to be interrupted, so the window that got skipped was the common case. ``older_than_
+    minutes`` survives for a periodic sweep inside a *live* process, where an in-flight review is
+    genuinely still running and must not be failed.
+    """
     cutoff = stale_job_cutoff(older_than_minutes)
     rows = list(
         db.execute(

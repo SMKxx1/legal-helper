@@ -85,9 +85,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # /healthz reflects real boot-time health, not just config presence.
         await registry.run_probes()
         # Crash recovery (plan §3): a process restart mid-review leaves its row stuck at
-        # queued/running forever — the add-in would poll it indefinitely. Fail anything stale.
+        # queued/running forever — the add-in would poll it indefinitely. Every such row belongs
+        # to the process that just died, so all of them are failed here regardless of age.
         with SessionLocal() as db:
-            stale = reviews_repo.fail_stale_jobs(db)
+            stale = reviews_repo.fail_stale_jobs(db, older_than_minutes=0)
             if stale:
                 log.warning("reviews.stale_jobs_failed", count=stale)
         yield
